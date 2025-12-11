@@ -215,8 +215,8 @@ DATE=$(date +%Y%m%d-%H%M%S)
 
 mkdir -p $BACKUP_DIR
 
-# n8nを停止（データ整合性のため）
-cd $N8N_DIR && docker compose stop n8n
+echo "Stopping n8n service for backup..."
+cd $N8N_DIR && docker compose stop n8n || exit 1
 
 # n8nデータ
 docker run --rm -v n8n_data:/data -v $BACKUP_DIR:/backup alpine \
@@ -226,8 +226,8 @@ docker run --rm -v n8n_data:/data -v $BACKUP_DIR:/backup alpine \
 docker run --rm -v caddy_data:/data -v $BACKUP_DIR:/backup alpine \
   tar czf /backup/caddy-data-$DATE.tar.gz -C /data .
 
-# n8nを再開
-cd $N8N_DIR && docker compose start n8n
+echo "Starting n8n service..."
+cd $N8N_DIR && docker compose start n8n || exit 1
 
 # 7日以上古いバックアップを削除
 find $BACKUP_DIR -name "*.tar.gz" -mtime +7 -delete

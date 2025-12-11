@@ -15,7 +15,7 @@
         # HSTS（HTTPS強制、1年間）
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
         # CSP（n8n動作に必要な設定）
-        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'self'"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: wss:; frame-ancestors 'self'; form-action 'self'; base-uri 'self'; object-src 'none'"
         -Server
     }
 
