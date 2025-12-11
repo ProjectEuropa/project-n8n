@@ -1,6 +1,6 @@
 services:
   caddy:
-    image: caddy:2
+    image: caddy:2.8.4  # Pinned to specific version for production stability
     restart: unless-stopped
     ports:
       - "80:80"
@@ -77,6 +77,6 @@ networks:
 volumes:
   caddy_data:
     external: true
-  caddy_config:
+  caddy_config:  # Managed by Docker Compose (not external) for automatic Caddy configuration updates
   n8n_data:
     external: true

@@ -56,6 +56,13 @@ n8nをVPS上でDocker + Caddyを使用して動作させるための設定ファ
 
 ## セットアップ手順
 
+> **⚠️ セキュリティ上の重要な注意**
+>
+> rootユーザーでの日常的な操作は避けてください。セキュリティのベストプラクティスとして、以下を推奨します：
+> - 通常の管理作業には一般ユーザー（例：ubuntu、admin）を使用
+> - sudoを必要な時のみ使用
+> - n8nのインストールディレクトリは一般ユーザーのホームディレクトリ配下に配置
+
 ### 1. VPSにDockerをインストール
 
 ```bash
@@ -71,8 +78,8 @@ sudo usermod -aG docker $USER
 ### 2. このリポジトリをクローン
 
 ```bash
-git clone <repository-url> /root/n8n-docker-caddy
-cd /root/n8n-docker-caddy
+git clone <repository-url> ~/n8n-docker-caddy
+cd ~/n8n-docker-caddy
 ```
 
 ### 3. 環境変数を設定
@@ -86,7 +93,7 @@ nano .env
 
 | 変数名 | 説明 | 例 |
 |--------|------|-----|
-| `DATA_FOLDER` | 設定ファイルのパス | `/root/n8n-docker-caddy` |
+| `DATA_FOLDER` | 設定ファイルのパス | `~/n8n-docker-caddy` |
 | `DOMAIN_NAME` | メインドメイン | `example.com` |
 | `SUBDOMAIN` | サブドメイン | `n8n` |
 | `GENERIC_TIMEZONE` | タイムゾーン | `Asia/Tokyo` |
@@ -130,6 +137,13 @@ docker volume create n8n_data
 ### 7. n8nを起動
 
 ```bash
+# Verify .env file exists and is configured
+if [ ! -f .env ]; then
+  echo "Error: .env file not found. Please copy .env.example to .env and configure it."
+  exit 1
+fi
+
+# Start the services
 docker compose up -d
 ```
 
@@ -211,13 +225,15 @@ docker compose start n8n
 cat << 'EOF' > $HOME/n8n-backup.sh
 #!/bin/bash
 # --------------------------------------------------
-# !! 重大な注意 !!
-# 以下の N8N_DIR は、ご自身の `compose.yml` が存在するディレクトリの
-# 絶対パスに必ず変更してください。このパスが正しくないとバックアップは失敗します。
-# 例: N8N_DIR=/home/ubuntu/n8n-docker-caddy
+# !! CRITICAL WARNING !!
+# You MUST change N8N_DIR below to your actual installation directory
+# This should be the absolute path where your compose.yml is located
+# Example: N8N_DIR=/home/ubuntu/n8n-docker-caddy
+# The backup will FAIL if this path is incorrect!
 # --------------------------------------------------
 BACKUP_DIR=$HOME/n8n-backups
-N8N_DIR=/root/n8n-docker-caddy
+# !! IMPORTANT: Change this to your actual installation directory !!
+N8N_DIR=/path/to/your/n8n-docker-caddy  # REPLACE THIS with your actual path
 DATE=$(date +%Y%m%d-%H%M%S)
 
 mkdir -p $BACKUP_DIR
@@ -416,6 +432,11 @@ A: `WEBHOOK_URL`が正しく設定されているか確認してください。U
 ### Q: ワークフローの実行が遅い
 
 A: VPSのスペックを確認してください。推奨は2 vCPU / 4GB RAM以上です。
+
+**リソース制限の調整が必要な場合**:
+- 20以上のアクティブなワークフロー、または1日500以上の実行がある場合は、`compose.yml`のメモリ制限を4GB以上に増やすことを検討してください
+- `deploy.resources.limits.memory`を`4096M`に変更
+- CPUリソースも必要に応じて調整してください
 
 ### Q: 複数ユーザーで使いたい
 
