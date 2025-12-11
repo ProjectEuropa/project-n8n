@@ -76,8 +76,8 @@ if [ ${#n8n_backups[@]} -eq 0 ]; then
     exit 1
 fi
 
-echo "番号  日時                    n8nデータ                Caddyデータ"
-echo "----  --------------------  -----------------------  -----------------------"
+echo "番号  日時                    n8nデータ      Caddyデータ"
+echo "----  --------------------  -------------  -------------"
 
 declare -A backup_dates
 index=1
@@ -85,7 +85,7 @@ index=1
 for backup in "${n8n_backups[@]}"; do
     # ファイル名から日時を抽出（例: n8n-data-20250101-120000.tar.gz -> 20250101-120000）
     basename=$(basename "$backup")
-    datetime=$(echo "$basename" | sed 's/n8n-data-\(.*\)\.tar\.gz/\1/')
+    datetime=$(echo "$basename" | sed 's/^n8n-data-\(.*\)\.tar\.gz$/\1/')
 
     # 対応するCaddyバックアップの存在確認
     caddy_backup="$BACKUP_DIR/caddy-data-$datetime.tar.gz"
@@ -101,7 +101,7 @@ for backup in "${n8n_backups[@]}"; do
     # フォーマットされた日時（YYYY-MM-DD HH:MM:SS）
     formatted_date=$(echo "$datetime" | sed 's/\([0-9]\{4\}\)\([0-9]\{2\}\)\([0-9]\{2\}\)-\([0-9]\{2\}\)\([0-9]\{2\}\)\([0-9]\{2\}\)/\1-\2-\3 \4:\5:\6/')
 
-    printf "%-4d  %-20s  %-7s                %-7s\n" "$index" "$formatted_date" "$n8n_size" "$caddy_status"
+    printf "%-4s  %-20s  %-13s  %-13s\n" "$index" "$formatted_date" "$n8n_size" "$caddy_status"
 
     backup_dates[$index]=$datetime
     index=$((index + 1))

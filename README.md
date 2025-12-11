@@ -279,7 +279,11 @@ cronを使用してバックアップを自動化できます：
 
 ```bash
 # cronに登録（毎日午前3時に実行）
-(crontab -l 2>/dev/null; echo "0 3 * * * $HOME/n8n-docker-caddy/n8n-backup.sh >> $HOME/n8n-backup.log 2>&1") | crontab -
+# /path/to/your/n8n-docker-caddy を実際のパスに置き換えてください
+(crontab -l 2>/dev/null; echo "0 3 * * * /path/to/your/n8n-docker-caddy/n8n-backup.sh >> $HOME/n8n-backup.log 2>&1") | crontab -
+
+# 例: ~/n8n-docker-caddy にインストールした場合
+# (crontab -l 2>/dev/null; echo "0 3 * * * $HOME/n8n-docker-caddy/n8n-backup.sh >> $HOME/n8n-backup.log 2>&1") | crontab -
 ```
 
 ### 手動バックアップ

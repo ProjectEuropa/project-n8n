@@ -137,6 +137,21 @@ EOF
     fi
 
     echo "✅ .envファイルを作成しました。"
+
+    # バックアップ/リストアスクリプトのN8N_DIRを自動設定
+    echo ""
+    echo "▶ バックアップ/リストアスクリプトを設定中..."
+    # current_dir には / が含まれる可能性があるため、sedのデリミタを | に変更
+    if [ -f "n8n-backup.sh" ]; then
+        sed -i.bak "s|N8N_DIR=/path/to/your/n8n-docker-caddy|N8N_DIR=${current_dir}|" n8n-backup.sh
+        rm -f n8n-backup.sh.bak
+        echo "  ✓ n8n-backup.sh のN8N_DIRを設定しました"
+    fi
+    if [ -f "n8n-restore.sh" ]; then
+        sed -i.bak "s|N8N_DIR=/path/to/your/n8n-docker-caddy|N8N_DIR=${current_dir}|" n8n-restore.sh
+        rm -f n8n-restore.sh.bak
+        echo "  ✓ n8n-restore.sh のN8N_DIRを設定しました"
+    fi
 fi
 
 echo ""

@@ -27,9 +27,6 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# エラーハンドリング
-trap 'echo -e "${RED}エラー: バックアップが失敗しました${NC}"; exit 1' ERR
-
 echo "========================================="
 echo "  n8n バックアップスクリプト"
 echo "========================================="
@@ -59,9 +56,32 @@ if [ ! -f "$N8N_DIR/compose.yml" ]; then
     exit 1
 fi
 
+# エラーハンドリング: n8nサービスを再開する関数
+function error_handler {
+    echo -e "${RED}エラー: バックアップが失敗しました${NC}"
+    # n8nが停止している可能性があるので、再開を試みる
+    if [ -d "$N8N_DIR" ] && [ -f "$N8N_DIR/compose.yml" ]; then
+        echo "n8nサービスを再開しようとしています..."
+        cd "$N8N_DIR" && docker compose start n8n || echo -e "${YELLOW}n8nサービスの再開に失敗しました。手動で確認してください。${NC}"
+    fi
+    exit 1
+}
+trap error_handler ERR
+
 # バックアップディレクトリを作成
 mkdir -p "$BACKUP_DIR"
 echo -e "${GREEN}✓${NC} バックアップディレクトリ: $BACKUP_DIR"
+echo ""
+
+# ディスクスペースチェック（最低2GBの空き容量が必要）
+available_space=$(df -BG "$BACKUP_DIR" | tail -1 | awk '{print $4}' | sed 's/G//')
+if [ "$available_space" -lt 2 ]; then
+    echo -e "${RED}エラー: ディスクスペースが不足しています${NC}"
+    echo "バックアップディレクトリ ($BACKUP_DIR) に最低2GBの空き容量が必要です。"
+    echo "現在の空き容量: ${available_space}GB"
+    exit 1
+fi
+echo -e "${GREEN}✓${NC} ディスクスペース確認: ${available_space}GB 利用可能"
 echo ""
 
 # n8nサービスを停止（データ整合性のため）
@@ -69,6 +89,8 @@ echo "▶ n8nサービスを停止中..."
 cd "$N8N_DIR"
 if docker compose stop n8n; then
     echo -e "${GREEN}✓${NC} n8nサービスを停止しました"
+    # データが完全に書き込まれるまで待機
+    sleep 2
 else
     echo -e "${RED}✗${NC} n8nサービスの停止に失敗しました"
     exit 1
@@ -80,13 +102,13 @@ echo "▶ n8nデータをバックアップ中..."
 BACKUP_N8N="$BACKUP_DIR/n8n-data-$DATE.tar.gz"
 if docker run --rm -v n8n_data:/data -v "$BACKUP_DIR":/backup alpine \
     tar czf /backup/n8n-data-$DATE.tar.gz -C /data .; then
+    chmod 600 "$BACKUP_N8N"
     echo -e "${GREEN}✓${NC} n8nデータのバックアップ完了: $(basename "$BACKUP_N8N")"
     # ファイルサイズを表示
     size=$(du -h "$BACKUP_N8N" | cut -f1)
     echo "  サイズ: $size"
 else
     echo -e "${RED}✗${NC} n8nデータのバックアップに失敗しました"
-    cd "$N8N_DIR" && docker compose start n8n
     exit 1
 fi
 echo ""
@@ -96,13 +118,13 @@ echo "▶ Caddyデータをバックアップ中..."
 BACKUP_CADDY="$BACKUP_DIR/caddy-data-$DATE.tar.gz"
 if docker run --rm -v caddy_data:/data -v "$BACKUP_DIR":/backup alpine \
     tar czf /backup/caddy-data-$DATE.tar.gz -C /data .; then
+    chmod 600 "$BACKUP_CADDY"
     echo -e "${GREEN}✓${NC} Caddyデータのバックアップ完了: $(basename "$BACKUP_CADDY")"
     # ファイルサイズを表示
     size=$(du -h "$BACKUP_CADDY" | cut -f1)
     echo "  サイズ: $size"
 else
     echo -e "${RED}✗${NC} Caddyデータのバックアップに失敗しました"
-    cd "$N8N_DIR" && docker compose start n8n
     exit 1
 fi
 echo ""
@@ -119,9 +141,11 @@ echo ""
 
 # 古いバックアップを削除（7日以上古いもの）
 echo "▶ 古いバックアップを削除中（7日以上前）..."
-deleted_count=$(find "$BACKUP_DIR" -name "*.tar.gz" -mtime +7 -delete -print | wc -l)
+deleted_n8n=$(find "$BACKUP_DIR" -name "n8n-data-*.tar.gz" -mtime +7 -delete -print | wc -l)
+deleted_caddy=$(find "$BACKUP_DIR" -name "caddy-data-*.tar.gz" -mtime +7 -delete -print | wc -l)
+deleted_count=$((deleted_n8n + deleted_caddy))
 if [ "$deleted_count" -gt 0 ]; then
-    echo -e "${GREEN}✓${NC} $deleted_count 個の古いバックアップを削除しました"
+    echo -e "${GREEN}✓${NC} $deleted_count 個の古いバックアップを削除しました (n8n: $deleted_n8n, caddy: $deleted_caddy)"
 else
     echo "  削除対象のバックアップはありませんでした"
 fi
