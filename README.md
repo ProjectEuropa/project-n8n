@@ -254,7 +254,8 @@ docker compose pull && docker compose up -d
 バックアップスクリプトを使用すると、n8nデータとCaddyデータ（SSL証明書）を簡単にバックアップできます。
 
 ```bash
-# 1. スクリプト内のN8N_DIRを設定（初回のみ）
+# 1. スクリプト内のN8N_DIRを設定（setup.sh未使用時のみ）
+# setup.shを実行した場合、この手順は不要です（自動設定済み）
 nano n8n-backup.sh
 # N8N_DIR=/path/to/your/n8n-docker-caddy を実際のパスに変更
 # 例: N8N_DIR=/home/ubuntu/n8n-docker-caddy

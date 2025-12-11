@@ -26,7 +26,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # エラーハンドリング
-trap 'echo -e "${RED}エラー: リストアが失敗しました${NC}"; exit 1' ERR
+trap 'echo -e "\n${RED}エラー: リストアが中断または失敗しました${NC}"; exit 1' ERR INT TERM
 
 echo "========================================="
 echo "  n8n リストアスクリプト"
