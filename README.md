@@ -42,6 +42,10 @@ n8nをVPS上でDocker + Caddyを使用して動作させるための設定ファ
 ├── compose.yml           # Docker Compose設定
 ├── .env.example          # 環境変数テンプレート
 ├── .env                  # 環境変数（要作成）
+├── setup.sh              # セットアップスクリプト（NEW）
+├── setup_auth.sh         # Basic認証設定スクリプト
+├── n8n-backup.sh         # バックアップスクリプト（NEW）
+├── n8n-restore.sh        # リストアスクリプト（NEW）
 ├── caddy_config/
 │   └── Caddyfile         # Caddyリバースプロキシ設定
 └── local_files/          # n8nファイル保存用
@@ -54,7 +58,40 @@ n8nをVPS上でDocker + Caddyを使用して動作させるための設定ファ
 - ドメイン名（サブドメインのDNS設定済み）
 - 80/443 ポートが開放されていること
 
-## セットアップ手順
+## クイックスタート（推奨）
+
+初めてセットアップする場合は、対話形式のセットアップスクリプトを使用することを推奨します。
+
+```bash
+# 1. リポジトリをクローン
+git clone <repository-url> ~/n8n-docker-caddy
+cd ~/n8n-docker-caddy
+
+# 2. セットアップスクリプトを実行
+chmod +x setup.sh
+./setup.sh
+```
+
+セットアップスクリプトは以下を自動的に実行します：
+- Dockerのインストール確認（未インストールの場合はインストール可能）
+- .envファイルの対話形式での作成
+- Dockerボリュームの作成
+- Basic認証の設定（オプション）
+- 必要なスクリプトへの実行権限付与
+
+セットアップ完了後、DNSレコードを設定してから以下を実行：
+
+```bash
+# 3. n8nを起動
+docker compose up -d
+
+# 4. ログを確認
+docker compose logs -f
+```
+
+詳細な手動セットアップ手順については、下記の「セットアップ手順（手動）」を参照してください。
+
+## セットアップ手順（手動）
 
 > **⚠️ セキュリティ上の重要な注意**
 >
@@ -212,6 +249,39 @@ docker compose pull && docker compose up -d
 
 ## バックアップ
 
+### スクリプトを使用したバックアップ（推奨）
+
+バックアップスクリプトを使用すると、n8nデータとCaddyデータ（SSL証明書）を簡単にバックアップできます。
+
+```bash
+# 1. スクリプト内のN8N_DIRを設定（初回のみ）
+nano n8n-backup.sh
+# N8N_DIR=/path/to/your/n8n-docker-caddy を実際のパスに変更
+# 例: N8N_DIR=/home/ubuntu/n8n-docker-caddy
+
+# 2. バックアップを実行
+chmod +x n8n-backup.sh
+./n8n-backup.sh
+```
+
+バックアップスクリプトの機能：
+- n8nサービスの自動停止・再開
+- n8nデータのバックアップ
+- Caddyデータ（SSL証明書）のバックアップ
+- 7日以上古いバックアップの自動削除
+- エラーハンドリングと詳細なログ出力
+
+バックアップファイルは `$HOME/n8n-backups/` に保存されます。
+
+### 自動バックアップ（cron）
+
+cronを使用してバックアップを自動化できます：
+
+```bash
+# cronに登録（毎日午前3時に実行）
+(crontab -l 2>/dev/null; echo "0 3 * * * $HOME/n8n-docker-caddy/n8n-backup.sh >> $HOME/n8n-backup.log 2>&1") | crontab -
+```
+
 ### 手動バックアップ
 
 **注意**: データの整合性を保つため、バックアップ前にn8nを停止することを推奨します。
@@ -235,53 +305,32 @@ docker run --rm -v caddy_data:/data -v $HOME/n8n-backups:/backup alpine \
 docker compose start n8n
 ```
 
-### 自動バックアップ（cron）
+### バックアップからの復元（スクリプト使用）
+
+リストアスクリプトを使用すると、バックアップからの復元が簡単になります。
 
 ```bash
-# バックアップスクリプトを作成
-cat << 'EOF' > $HOME/n8n-backup.sh
-#!/bin/bash
-# --------------------------------------------------
-# !! CRITICAL WARNING !!
-# You MUST change N8N_DIR below to your actual installation directory
-# This should be the absolute path where your compose.yml is located
-# Example: N8N_DIR=/home/ubuntu/n8n-docker-caddy
-# The backup will FAIL if this path is incorrect!
-# --------------------------------------------------
-BACKUP_DIR=$HOME/n8n-backups
-# !! IMPORTANT: Change this to your actual installation directory !!
-N8N_DIR=/path/to/your/n8n-docker-caddy  # REPLACE THIS with your actual path
-DATE=$(date +%Y%m%d-%H%M%S)
+# 1. スクリプト内のN8N_DIRを設定（初回のみ）
+nano n8n-restore.sh
+# N8N_DIR=/path/to/your/n8n-docker-caddy を実際のパスに変更
+# 例: N8N_DIR=/home/ubuntu/n8n-docker-caddy
 
-mkdir -p $BACKUP_DIR
+# 2. 利用可能なバックアップを確認してリストアを実行
+chmod +x n8n-restore.sh
+./n8n-restore.sh
 
-echo "Stopping n8n service for backup..."
-cd $N8N_DIR && docker compose stop n8n || exit 1
-
-# n8nデータ
-docker run --rm -v n8n_data:/data -v $BACKUP_DIR:/backup alpine \
-  tar czf /backup/n8n-data-$DATE.tar.gz -C /data .
-
-# Caddyデータ
-docker run --rm -v caddy_data:/data -v $BACKUP_DIR:/backup alpine \
-  tar czf /backup/caddy-data-$DATE.tar.gz -C /data .
-
-echo "Starting n8n service..."
-cd $N8N_DIR && docker compose start n8n || exit 1
-
-# 7日以上古いバックアップを削除
-find $BACKUP_DIR -name "*.tar.gz" -mtime +7 -delete
-
-echo "Backup completed: $DATE"
-EOF
-
-chmod +x $HOME/n8n-backup.sh
-
-# cronに登録（毎日3時に実行）
-(crontab -l 2>/dev/null; echo "0 3 * * * $HOME/n8n-backup.sh >> $HOME/n8n-backup.log 2>&1") | crontab -
+# または、特定のバックアップを直接指定
+./n8n-restore.sh 20250101-120000
 ```
 
-### バックアップからの復元
+リストアスクリプトの機能：
+- 利用可能なバックアップの一覧表示
+- 既存ボリュームの削除と再作成
+- バックアップデータの復元
+- 確認プロンプトによる安全性の確保
+- n8nサービスの自動起動
+
+### バックアップからの復元（手動）
 
 ```bash
 # n8nを停止
