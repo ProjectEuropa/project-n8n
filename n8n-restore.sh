@@ -68,7 +68,7 @@ echo "▶ 利用可能なバックアップ:"
 echo ""
 
 # n8nバックアップのリスト
-n8n_backups=($(ls -1t "$BACKUP_DIR"/n8n-data-*.tar.gz 2>/dev/null || true))
+mapfile -t n8n_backups < <(find "$BACKUP_DIR" -maxdepth 1 -type f -name 'n8n-data-*.tar.gz' -printf '%T@ %p\n' | sort -nr | cut -d' ' -f2-)
 
 if [ ${#n8n_backups[@]} -eq 0 ]; then
     echo -e "${RED}エラー: バックアップが見つかりません${NC}"
