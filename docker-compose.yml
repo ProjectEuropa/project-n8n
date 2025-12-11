@@ -1,0 +1,38 @@
+services:
+  caddy:
+    image: caddy:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME}
+      - SUBDOMAIN=${SUBDOMAIN}
+      - SSL_EMAIL=${SSL_EMAIL}
+    volumes:
+      - ${DATA_FOLDER}/caddy_config/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=${SUBDOMAIN}.${DOMAIN_NAME}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - NODE_ENV=production
+      - WEBHOOK_URL=https://${SUBDOMAIN}.${DOMAIN_NAME}/
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ${DATA_FOLDER}/local_files:/files
+
+volumes:
+  caddy_data:
+    external: true
+  caddy_config:
+  n8n_data:
+    external: true
