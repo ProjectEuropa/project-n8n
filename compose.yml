@@ -15,6 +15,14 @@ services:
       - caddy_config:/config
     networks:
       - n8n-network
+    healthcheck:
+      test: ["CMD", "caddy", "version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      n8n:
+        condition: service_healthy
 
   n8n:
     image: docker.n8n.io/n8nio/n8n:latest

@@ -83,9 +83,64 @@ docker compose restart n8n
 # 停止
 docker compose down
 
+# ヘルスチェック状態を確認
+docker compose ps
+
 # 更新
 docker compose pull && docker compose up -d
 ```
+
+## バックアップ
+
+### n8nデータのバックアップ
+
+```bash
+# バックアップディレクトリを作成
+mkdir -p ~/n8n-backups
+
+# n8nデータをバックアップ
+docker run --rm -v n8n_data:/data -v ~/n8n-backups:/backup alpine \
+  tar czf /backup/n8n-data-$(date +%Y%m%d-%H%M%S).tar.gz -C /data .
+
+# Caddyデータをバックアップ（SSL証明書含む）
+docker run --rm -v caddy_data:/data -v ~/n8n-backups:/backup alpine \
+  tar czf /backup/caddy-data-$(date +%Y%m%d-%H%M%S).tar.gz -C /data .
+```
+
+### バックアップからの復元
+
+```bash
+# n8nを停止
+docker compose down
+
+# n8nデータを復元
+docker run --rm -v n8n_data:/data -v ~/n8n-backups:/backup alpine \
+  sh -c "rm -rf /data/* && tar xzf /backup/n8n-data-YYYYMMDD-HHMMSS.tar.gz -C /data"
+
+# n8nを再起動
+docker compose up -d
+```
+
+## アップグレード
+
+### n8nのアップグレード手順
+
+```bash
+# 1. バックアップを取得（上記参照）
+
+# 2. 現在のバージョンを確認
+docker compose exec n8n n8n --version
+
+# 3. イメージを更新して再起動
+docker compose pull n8n
+docker compose up -d n8n
+
+# 4. 動作確認
+docker compose ps
+docker compose logs n8n
+```
+
+**注意**: メジャーバージョンアップ時はリリースノートを確認してください。
 
 ## トラブルシューティング
 
