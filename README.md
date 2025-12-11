@@ -314,7 +314,7 @@ docker compose start n8n
 リストアスクリプトを使用すると、バックアップからの復元が簡単になります。
 
 ```bash
-# 1. スクリプト内のN8N_DIRを設定（初回のみ）
+# 1. スクリプト内のN8N_DIRを設定（setup.sh未使用時のみ）
 nano n8n-restore.sh
 # N8N_DIR=/path/to/your/n8n-docker-caddy を実際のパスに変更
 # 例: N8N_DIR=/home/ubuntu/n8n-docker-caddy
