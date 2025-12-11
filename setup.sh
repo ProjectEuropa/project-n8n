@@ -158,7 +158,8 @@ echo ""
 
 # Basic認証のパスワードハッシュを生成
 if [ -f .env ]; then
-    source .env
+    BASIC_AUTH_PASSWORD=$(grep '^BASIC_AUTH_PASSWORD=' .env | cut -d'=' -f2- || true)
+    BASIC_AUTH_PASSWORD_HASH=$(grep '^BASIC_AUTH_PASSWORD_HASH=' .env | cut -d'=' -f2- || true)
     if [ -n "$BASIC_AUTH_PASSWORD" ] && [ -z "$BASIC_AUTH_PASSWORD_HASH" ]; then
         echo "▶ Basic認証のパスワードハッシュを生成中..."
         if [ -x ./setup_auth.sh ]; then
