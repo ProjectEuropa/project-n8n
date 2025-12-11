@@ -30,7 +30,7 @@ jobs:
           ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
 
           # VPSに接続してデプロイ
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no "$VPS_USER@$VPS_HOST" << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key "$VPS_USER@$VPS_HOST" << 'ENDSSH'
             set -e
 
             echo "📦 Deploying n8n to VPS..."
@@ -45,8 +45,9 @@ jobs:
 
             # .envファイルの存在確認
             if [ ! -f .env ]; then
-              echo "⚠️  Warning: .env file not found. Please create it from .env.example"
-              echo "   Deployment will continue but services may not start correctly."
+              echo "❌ Error: .env file not found. Please create it from .env.example"
+              echo "   Aborting deployment."
+              exit 1
             fi
 
             # Docker Composeで更新されたイメージをプル
@@ -59,14 +60,23 @@ jobs:
 
             # ヘルスチェック（最大60秒待機）
             echo "🏥 Checking service health..."
+            HEALTHY=false
             for i in {1..12}; do
-              if docker compose ps | grep -q "healthy"; then
-                echo "✅ Services are healthy!"
+              # compose.ymlには2つのサービス(caddy, n8n)が定義されていることを想定
+              if [ "$(docker compose ps | grep -c 'healthy')" -eq 2 ]; then
+                echo "✅ All services are healthy!"
+                HEALTHY=true
                 break
               fi
               echo "   Waiting for services to become healthy... ($i/12)"
               sleep 5
             done
+
+            if [ "$HEALTHY" = false ]; then
+              echo "❌ Health check failed. Not all services became healthy after 60 seconds."
+              docker compose ps
+              exit 1
+            fi
 
             # 最終状態を表示
             echo "📊 Current service status:"

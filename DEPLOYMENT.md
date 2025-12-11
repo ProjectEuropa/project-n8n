@@ -239,11 +239,14 @@ Slack、Discord、メールなどへの通知を追加できます。
 ```yaml
 - name: Notify Slack
   if: always()
-  uses: 8398a7/action-slack@v3
+  uses: slackapi/slack-github-action@v1
   with:
-    status: ${{ job.status }}
-    text: 'n8n deployment to VPS'
-    webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+    payload: |
+      {
+        "text": "n8n deployment to VPS: ${{ job.status }}"
+      }
+  env:
+    SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 ```
 
 ### ロールバック機能
@@ -252,12 +255,15 @@ Slack、Discord、メールなどへの通知を追加できます。
 
 ```bash
 # デプロイスクリプトに追加
-CURRENT_COMMIT=$(git rev-parse HEAD)
-if [ $? -ne 0 ]; then
-  echo "Deployment failed, rolling back..."
-  git reset --hard $CURRENT_COMMIT
+# 更新前のコミットIDを保存
+OLD_COMMIT=$(git rev-parse HEAD)
+# デプロイ実行と失敗時のロールバック
+git reset --hard origin/main && docker compose up -d || {
+  echo "Deployment failed, rolling back to ${OLD_COMMIT}..."
+  git reset --hard $OLD_COMMIT
   docker compose up -d
-fi
+  exit 1
+}
 ```
 
 ### Blue-Green デプロイ
@@ -302,15 +308,26 @@ A: `docker compose up -d`は rolling update を行うため、通常は数秒程
 
 ### Q: 本番環境でのバックアップは？
 
-A: デプロイ前に自動バックアップを取ることを強く推奨します。ワークフローに以下を追加：
+A: デプロイ前に自動バックアップを取ることを強く推奨します。まず、VPS上にbackup.shスクリプトを作成する必要があります：
 
-```yaml
-- name: Backup before deploy
-  run: |
-    ssh -i ~/.ssh/deploy_key "$VPS_USER@$VPS_HOST" << 'ENDSSH'
-      cd ${VPS_DEPLOY_PATH}
-      ./backup.sh
-    ENDSSH
+```bash
+# VPS上で /home/n8n-deploy/backup.sh として作成
+#!/bin/bash
+BACKUP_DIR="/home/n8n-deploy/backups"
+mkdir -p $BACKUP_DIR
+docker compose exec -T n8n tar -czf - /home/node/.n8n > "$BACKUP_DIR/n8n-backup-$(date +%Y%m%d-%H%M%S).tar.gz"
+# 古いバックアップを削除（7日以上前）
+find $BACKUP_DIR -name "*.tar.gz" -mtime +7 -delete
+```
+
+その後、デプロイワークフロー内のDeploy to VPSステップ内で、git pullの前に以下を追加：
+
+```bash
+# バックアップスクリプトが存在する場合のみ実行
+if [ -f ./backup.sh ]; then
+  echo "📦 Creating backup..."
+  ./backup.sh
+fi
 ```
 
 ### Q: 特定のブランチのみデプロイしたい
