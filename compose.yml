@@ -23,6 +23,15 @@ services:
     depends_on:
       n8n:
         condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
   n8n:
     image: docker.n8n.io/n8nio/n8n:latest
@@ -47,6 +56,15 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
 
 networks:
   n8n-network:
