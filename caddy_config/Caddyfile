@@ -3,6 +3,10 @@
 }
 
 {$SUBDOMAIN}.{$DOMAIN_NAME} {
+    basicauth * {
+        {$BASIC_AUTH_USER} {$BASIC_AUTH_PASSWORD_HASH}
+    }
+
     reverse_proxy n8n:5678 {
         flush_interval -1
     }
