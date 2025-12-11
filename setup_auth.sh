@@ -40,8 +40,8 @@ fi
 
 echo "🔐 パスワードのハッシュを生成しています..."
 
-# Caddyコンテナを使用してパスワードハッシュを生成
-PASSWORD_HASH=$(docker run --rm caddy:2.8.4 caddy hash-password --plaintext "$BASIC_AUTH_PASSWORD")
+# Caddyコンテナを使用してパスワードハッシュを生成（標準入力経由で安全に渡す）
+PASSWORD_HASH=$(echo "$BASIC_AUTH_PASSWORD" | docker run --rm -i caddy:2.8.4 caddy hash-password)
 
 if [ -z "$PASSWORD_HASH" ]; then
     echo "❌ パスワードハッシュの生成に失敗しました。"
@@ -55,18 +55,21 @@ echo ""
 cp .env .env.backup
 echo "📁 .envのバックアップを作成しました (.env.backup)"
 
-# .envファイルを更新
+# .envファイルを更新（より堅牢な方法）
+# 一時ファイルを使用して安全に更新
+TEMP_ENV=$(mktemp)
 if grep -q "^BASIC_AUTH_PASSWORD_HASH=" .env; then
-    # 既存の行を更新（macOSとLinux両方で動作）
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        sed -i '' "s|^BASIC_AUTH_PASSWORD_HASH=.*|BASIC_AUTH_PASSWORD_HASH=$PASSWORD_HASH|" .env
-    else
-        sed -i "s|^BASIC_AUTH_PASSWORD_HASH=.*|BASIC_AUTH_PASSWORD_HASH=$PASSWORD_HASH|" .env
-    fi
+    # 既存の行を削除して新しい行を追加
+    grep -v "^BASIC_AUTH_PASSWORD_HASH=" .env > "$TEMP_ENV"
+    echo "BASIC_AUTH_PASSWORD_HASH=$PASSWORD_HASH" >> "$TEMP_ENV"
 else
-    # 新しい行を追加
-    echo "BASIC_AUTH_PASSWORD_HASH=$PASSWORD_HASH" >> .env
+    # 既存のファイルをコピーして新しい行を追加
+    cp .env "$TEMP_ENV"
+    echo "BASIC_AUTH_PASSWORD_HASH=$PASSWORD_HASH" >> "$TEMP_ENV"
 fi
+
+# 一時ファイルを.envに移動
+mv "$TEMP_ENV" .env
 
 echo "✅ .envファイルを更新しました。"
 echo ""
