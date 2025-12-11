@@ -25,10 +25,10 @@ git push
 
 #### 2.1 デプロイ用のSSHキーを作成
 
-VPS上で専用のSSHキーペアを作成します（ローカルマシンで実行）：
+**ローカルマシン**（あなたのPC）で専用のSSHキーペアを作成します：
 
 ```bash
-# SSH鍵ペアを生成
+# ローカルマシンでSSH鍵ペアを生成
 ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/github_deploy_key -N ""
 
 # 秘密鍵の内容を表示（後でGitHub Secretsに登録）
@@ -166,9 +166,17 @@ docker compose: command not found
 **原因**: Docker Composeがインストールされていない
 
 **解決方法**:
+
+> ⚠️ **セキュリティ警告**: `curl | sh` パターンはコードを検証せずに実行するため、セキュリティリスクがあります。
+
+**推奨方法**: [Dockerの公式インストールガイド](https://docs.docker.com/engine/install/)に従ってインストール
+
+**クイックインストール** (リスクを理解した上で使用):
 ```bash
 # Docker Desktop（Compose V2含む）をインストール
-curl -fsSL https://get.docker.com | sh
+curl -fsSL https://get.docker.com -o get-docker.sh
+# スクリプトの内容を確認してから実行
+sh get-docker.sh
 ```
 
 ### サービスがhealthyにならない
@@ -257,10 +265,12 @@ Slack、Discord、メールなどへの通知を追加できます。
 # デプロイスクリプトに追加
 # 更新前のコミットIDを保存
 OLD_COMMIT=$(git rev-parse HEAD)
+# 最新の変更を取得
+git fetch origin
 # デプロイ実行と失敗時のロールバック
 git reset --hard origin/main && docker compose up -d || {
   echo "Deployment failed, rolling back to ${OLD_COMMIT}..."
-  git reset --hard $OLD_COMMIT
+  git reset --hard "$OLD_COMMIT"
   docker compose up -d
   exit 1
 }
@@ -311,13 +321,14 @@ A: `docker compose up -d`は rolling update を行うため、通常は数秒程
 A: デプロイ前に自動バックアップを取ることを強く推奨します。まず、VPS上にbackup.shスクリプトを作成する必要があります：
 
 ```bash
-# VPS上で /home/n8n-deploy/backup.sh として作成
+# VPS上でプロジェクトディレクトリに backup.sh として作成
 #!/bin/bash
-BACKUP_DIR="/home/n8n-deploy/backups"
-mkdir -p $BACKUP_DIR
+# 現在のディレクトリを基準にバックアップディレクトリを設定
+BACKUP_DIR="$(pwd)/backups"
+mkdir -p "$BACKUP_DIR"
 docker compose exec -T n8n tar -czf - /home/node/.n8n > "$BACKUP_DIR/n8n-backup-$(date +%Y%m%d-%H%M%S).tar.gz"
 # 古いバックアップを削除（7日以上前）
-find $BACKUP_DIR -name "*.tar.gz" -mtime +7 -delete
+find "$BACKUP_DIR" -name "*.tar.gz" -mtime +7 -delete
 ```
 
 その後、デプロイワークフロー内のDeploy to VPSステップ内で、git pullの前に以下を追加：
