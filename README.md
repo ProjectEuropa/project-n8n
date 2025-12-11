@@ -98,6 +98,8 @@ nano .env
 | `SUBDOMAIN` | サブドメイン | `n8n` |
 | `GENERIC_TIMEZONE` | タイムゾーン | `Asia/Tokyo` |
 | `SSL_EMAIL` | SSL証明書通知用メール | `your@email.com` |
+| `BASIC_AUTH_USER` | Basic認証ユーザー名 | `admin` |
+| `BASIC_AUTH_PASSWORD` | Basic認証パスワード | 強力なパスワードを設定 |
 
 ### 4. DNSレコードを設定
 
@@ -134,7 +136,21 @@ docker volume create caddy_data
 docker volume create n8n_data
 ```
 
-### 7. n8nを起動
+### 7. Basic認証をセットアップ（オプション）
+
+n8nへのアクセスをBasic認証で保護する場合：
+
+```bash
+# パスワードハッシュを生成
+./setup_auth.sh
+```
+
+このスクリプトは以下を実行します：
+- .envファイルのBASIC_AUTH_PASSWORDを読み取る
+- Caddyで使用するパスワードハッシュを生成
+- .envファイルにBASIC_AUTH_PASSWORD_HASHを追加
+
+### 8. n8nを起動
 
 ```bash
 # Verify .env file exists and is configured
@@ -147,7 +163,7 @@ fi
 docker compose up -d
 ```
 
-### 8. 動作確認
+### 9. 動作確認
 
 ```bash
 # コンテナの状態を確認（両方 healthy になるまで待つ）
@@ -159,7 +175,8 @@ docker compose logs -f
 
 ブラウザで `https://n8n.example.com` にアクセス
 
-初回アクセス時にアカウント作成画面が表示されます。
+Basic認証を設定した場合は、設定したユーザー名とパスワードでログインします。
+その後、初回アクセス時にn8nのアカウント作成画面が表示されます。
 
 ## 管理コマンド
 
