@@ -1,0 +1,82 @@
+services:
+  caddy:
+    image: caddy:2.8.4  # Pinned to specific version for production stability
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME}
+      - SUBDOMAIN=${SUBDOMAIN}
+      - SSL_EMAIL=${SSL_EMAIL}
+    volumes:
+      - ${DATA_FOLDER:-.}/caddy_config/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - n8n-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:2019/config/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      n8n:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:1.123.5
+    restart: unless-stopped
+    expose:
+      - "5678"
+    environment:
+      - N8N_HOST=${SUBDOMAIN}.${DOMAIN_NAME}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - NODE_ENV=production
+      - WEBHOOK_URL=https://${SUBDOMAIN}.${DOMAIN_NAME}/
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ${DATA_FOLDER:-.}/local_files:/files
+    networks:
+      - n8n-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+networks:
+  n8n-network:
+    driver: bridge
+
+volumes:
+  caddy_data:
+    external: true
+  caddy_config:  # Managed by Docker Compose (not external) for automatic Caddy configuration updates
+  n8n_data:
+    external: true
