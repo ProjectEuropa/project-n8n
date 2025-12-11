@@ -21,11 +21,18 @@ N8N_DIR=/path/to/your/n8n-docker-caddy  # このパスを実際のパスに置�
 # タイムスタンプ
 DATE=$(date +%Y%m%d-%H%M%S)
 
-# カラー出力
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+# カラー出力（ターミナルでない場合は無効化）
+if [ -t 1 ]; then
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    NC='\033[0m' # No Color
+else
+    RED=''
+    GREEN=''
+    YELLOW=''
+    NC=''
+fi
 
 echo "========================================="
 echo "  n8n バックアップスクリプト"
@@ -62,7 +69,7 @@ function error_handler {
     # n8nが停止している可能性があるので、再開を試みる
     if [ -d "$N8N_DIR" ] && [ -f "$N8N_DIR/compose.yml" ]; then
         echo "n8nサービスを再開しようとしています..."
-        cd "$N8N_DIR" && docker compose start n8n || echo -e "${YELLOW}n8nサービスの再開に失敗しました。手動で確認してください。${NC}"
+        (cd "$N8N_DIR" && docker compose start n8n) || echo -e "${YELLOW}n8nサービスの再開に失敗しました。手動で確認してください。${NC}"
     fi
     exit 1
 }
@@ -86,14 +93,13 @@ echo ""
 
 # n8nサービスを停止（データ整合性のため）
 echo "▶ n8nサービスを停止中..."
-cd "$N8N_DIR"
-if docker compose stop n8n; then
+if (cd "$N8N_DIR" && docker compose stop n8n); then
     echo -e "${GREEN}✓${NC} n8nサービスを停止しました"
     # データが完全に書き込まれるまで待機
     sleep 2
 else
     echo -e "${RED}✗${NC} n8nサービスの停止に失敗しました"
-    exit 1
+    error_handler
 fi
 echo ""
 
@@ -131,8 +137,7 @@ echo ""
 
 # n8nサービスを再開
 echo "▶ n8nサービスを再開中..."
-cd "$N8N_DIR"
-if docker compose start n8n; then
+if (cd "$N8N_DIR" && docker compose start n8n); then
     echo -e "${GREEN}✓${NC} n8nサービスを再開しました"
 else
     echo -e "${YELLOW}⚠${NC} n8nサービスの再開に失敗しました。手動で起動してください: docker compose start n8n"

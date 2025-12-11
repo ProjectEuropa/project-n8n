@@ -18,12 +18,20 @@ BACKUP_DIR=$HOME/n8n-backups
 # !! 重要: これを実際のインストールディレクトリに変更してください !!
 N8N_DIR=/path/to/your/n8n-docker-caddy  # このパスを実際のパスに置き換えてください
 
-# カラー出力
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# カラー出力（ターミナルでない場合は無効化）
+if [ -t 1 ]; then
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    BLUE='\033[0;34m'
+    NC='\033[0m' # No Color
+else
+    RED=''
+    GREEN=''
+    YELLOW=''
+    BLUE=''
+    NC=''
+fi
 
 # エラーハンドリング
 trap 'echo -e "\n${RED}エラー: リストアが中断または失敗しました${NC}"; exit 1' ERR INT TERM
@@ -84,8 +92,9 @@ index=1
 
 for backup in "${n8n_backups[@]}"; do
     # ファイル名から日時を抽出（例: n8n-data-20250101-120000.tar.gz -> 20250101-120000）
-    basename=$(basename "$backup")
-    datetime=$(echo "$basename" | sed 's/^n8n-data-\(.*\)\.tar\.gz$/\1/')
+    basename_val=$(basename "$backup")
+    datetime_ext=${basename_val#n8n-data-}
+    datetime=${datetime_ext%.tar.gz}
 
     # 対応するCaddyバックアップの存在確認
     caddy_backup="$BACKUP_DIR/caddy-data-$datetime.tar.gz"
@@ -150,8 +159,7 @@ echo ""
 
 # n8nを停止
 echo "▶ n8nサービスを停止中..."
-cd "$N8N_DIR"
-if docker compose down; then
+if (cd "$N8N_DIR" && docker compose down); then
     echo -e "${GREEN}✓${NC} n8nサービスを停止しました"
 else
     echo -e "${RED}✗${NC} n8nサービスの停止に失敗しました"
@@ -196,8 +204,7 @@ echo ""
 
 # n8nを再起動
 echo "▶ n8nサービスを起動中..."
-cd "$N8N_DIR"
-if docker compose up -d; then
+if (cd "$N8N_DIR" && docker compose up -d); then
     echo -e "${GREEN}✓${NC} n8nサービスを起動しました"
 else
     echo -e "${RED}✗${NC} n8nサービスの起動に失敗しました"

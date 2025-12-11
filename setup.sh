@@ -141,14 +141,15 @@ EOF
     # バックアップ/リストアスクリプトのN8N_DIRを自動設定
     echo ""
     echo "▶ バックアップ/リストアスクリプトを設定中..."
-    # current_dir には / が含まれる可能性があるため、sedのデリミタを | に変更
+    # current_dir に特殊文字が含まれる可能性があるため、sedデリミタをエスケープ
+    escaped_dir=$(printf '%s\n' "$current_dir" | sed 's/|/\\|/g')
     if [ -f "n8n-backup.sh" ]; then
-        sed -i.bak "s|^N8N_DIR=.*|N8N_DIR=${current_dir}|" n8n-backup.sh
+        sed -i.bak "s|^N8N_DIR=.*|N8N_DIR=${escaped_dir}|" n8n-backup.sh
         rm -f n8n-backup.sh.bak
         echo "  ✓ n8n-backup.sh のN8N_DIRを設定しました"
     fi
     if [ -f "n8n-restore.sh" ]; then
-        sed -i.bak "s|^N8N_DIR=.*|N8N_DIR=${current_dir}|" n8n-restore.sh
+        sed -i.bak "s|^N8N_DIR=.*|N8N_DIR=${escaped_dir}|" n8n-restore.sh
         rm -f n8n-restore.sh.bak
         echo "  ✓ n8n-restore.sh のN8N_DIRを設定しました"
     fi
