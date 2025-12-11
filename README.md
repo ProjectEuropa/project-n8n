@@ -211,8 +211,9 @@ docker compose start n8n
 cat << 'EOF' > $HOME/n8n-backup.sh
 #!/bin/bash
 # --------------------------------------------------
-# !! 注意 !!
-# ご自身の環境に合わせて、以下の N8N_DIR の値を変更してください。
+# !! 重大な注意 !!
+# 以下の N8N_DIR は、ご自身の `compose.yml` が存在するディレクトリの
+# 絶対パスに必ず変更してください。このパスが正しくないとバックアップは失敗します。
 # 例: N8N_DIR=/home/ubuntu/n8n-docker-caddy
 # --------------------------------------------------
 BACKUP_DIR=$HOME/n8n-backups
@@ -282,15 +283,19 @@ docker compose up -d
 # 2. 現在のバージョンを確認
 docker compose exec n8n n8n --version
 
-# 3. イメージを更新して再起動
+# 3. compose.ymlでn8nのバージョンを更新
+# compose.ymlのimageタグを希望する新しいバージョンに変更してください
+nano compose.yml
+
+# 4. イメージを更新して再起動
 docker compose pull n8n
 docker compose up -d n8n
 
-# 4. 動作確認
+# 5. 動作確認
 docker compose ps
 docker compose logs n8n
 
-# 5. 新しいバージョンを確認
+# 6. 新しいバージョンを確認
 docker compose exec n8n n8n --version
 ```
 
