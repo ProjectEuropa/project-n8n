@@ -66,7 +66,7 @@ function error_handler {
     fi
     exit 1
 }
-trap error_handler ERR
+trap error_handler ERR INT TERM
 
 # バックアップディレクトリを作成
 mkdir -p "$BACKUP_DIR"
