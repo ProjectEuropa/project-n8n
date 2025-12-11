@@ -1,6 +1,6 @@
 services:
   caddy:
-    image: caddy:latest
+    image: caddy:2
     restart: unless-stopped
     ports:
       - "80:80"
@@ -13,9 +13,11 @@ services:
       - ${DATA_FOLDER}/caddy_config/Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config:/config
+    networks:
+      - n8n-network
 
   n8n:
-    image: docker.n8n.io/n8nio/n8n
+    image: docker.n8n.io/n8nio/n8n:latest
     restart: unless-stopped
     expose:
       - "5678"
@@ -29,6 +31,18 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
       - ${DATA_FOLDER}/local_files:/files
+    networks:
+      - n8n-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  n8n-network:
+    driver: bridge
 
 volumes:
   caddy_data:
