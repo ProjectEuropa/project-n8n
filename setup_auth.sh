@@ -20,8 +20,6 @@ fi
 
 # .envから必要な変数を安全に読み込む
 get_env_var() {
-    # .envファイルが存在しない場合のエラーを避ける
-    [ ! -f .env ] && return
     grep "^$1=" .env | head -n 1 | cut -d'=' -f2-
 }
 
@@ -50,7 +48,7 @@ fi
 echo "🔐 パスワードのハッシュを生成しています..."
 
 # compose.ymlからCaddyのバージョンを動的に取得
-CADDY_IMAGE=$(grep -E '^\s*image:\s*caddy:' compose.yml | sed 's/.*image:\s*//' | tr -d ' ')
+CADDY_IMAGE=$(grep -E '^\s*image:\s*caddy:' compose.yml | head -n 1 | sed 's/.*image:\s*//' | tr -d ' ')
 # Caddyコンテナを使用してパスワードハッシュを生成（標準入力経由で安全に渡す）
 PASSWORD_HASH=$(echo "$BASIC_AUTH_PASSWORD" | docker run --rm -i "${CADDY_IMAGE:-caddy:2.8.4}" caddy hash-password)
 
