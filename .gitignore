@@ -1,6 +1,8 @@
 # 環境変数（機密情報を含む）
 .env
 
+.idea
+
 # ローカルファイル
 local_files/*
 !local_files/.gitkeep
