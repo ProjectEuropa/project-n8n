@@ -182,29 +182,41 @@ docker compose pull && docker compose up -d
 
 ### 手動バックアップ
 
+**注意**: データの整合性を保つため、バックアップ前にn8nを停止することを推奨します。
+
 ```bash
 # バックアップディレクトリを作成
-mkdir -p ~/n8n-backups
+mkdir -p $HOME/n8n-backups
+
+# n8nを停止（データ整合性のため推奨）
+cd /root/n8n-docker-caddy && docker compose stop n8n
 
 # n8nデータをバックアップ
-docker run --rm -v n8n_data:/data -v ~/n8n-backups:/backup alpine \
+docker run --rm -v n8n_data:/data -v $HOME/n8n-backups:/backup alpine \
   tar czf /backup/n8n-data-$(date +%Y%m%d-%H%M%S).tar.gz -C /data .
 
 # Caddyデータをバックアップ（SSL証明書含む）
-docker run --rm -v caddy_data:/data -v ~/n8n-backups:/backup alpine \
+docker run --rm -v caddy_data:/data -v $HOME/n8n-backups:/backup alpine \
   tar czf /backup/caddy-data-$(date +%Y%m%d-%H%M%S).tar.gz -C /data .
+
+# n8nを再開
+cd /root/n8n-docker-caddy && docker compose start n8n
 ```
 
 ### 自動バックアップ（cron）
 
 ```bash
 # バックアップスクリプトを作成
-cat << 'EOF' > ~/n8n-backup.sh
+cat << 'EOF' > $HOME/n8n-backup.sh
 #!/bin/bash
-BACKUP_DIR=~/n8n-backups
+BACKUP_DIR=$HOME/n8n-backups
+N8N_DIR=/root/n8n-docker-caddy
 DATE=$(date +%Y%m%d-%H%M%S)
 
 mkdir -p $BACKUP_DIR
+
+# n8nを停止（データ整合性のため）
+cd $N8N_DIR && docker compose stop n8n
 
 # n8nデータ
 docker run --rm -v n8n_data:/data -v $BACKUP_DIR:/backup alpine \
@@ -214,16 +226,19 @@ docker run --rm -v n8n_data:/data -v $BACKUP_DIR:/backup alpine \
 docker run --rm -v caddy_data:/data -v $BACKUP_DIR:/backup alpine \
   tar czf /backup/caddy-data-$DATE.tar.gz -C /data .
 
+# n8nを再開
+cd $N8N_DIR && docker compose start n8n
+
 # 7日以上古いバックアップを削除
 find $BACKUP_DIR -name "*.tar.gz" -mtime +7 -delete
 
 echo "Backup completed: $DATE"
 EOF
 
-chmod +x ~/n8n-backup.sh
+chmod +x $HOME/n8n-backup.sh
 
 # cronに登録（毎日3時に実行）
-(crontab -l 2>/dev/null; echo "0 3 * * * ~/n8n-backup.sh >> ~/n8n-backup.log 2>&1") | crontab -
+(crontab -l 2>/dev/null; echo "0 3 * * * $HOME/n8n-backup.sh >> $HOME/n8n-backup.log 2>&1") | crontab -
 ```
 
 ### バックアップからの復元
@@ -232,13 +247,19 @@ chmod +x ~/n8n-backup.sh
 # n8nを停止
 docker compose down
 
+# 既存ボリュームを削除して再作成（確実な復元のため）
+docker volume rm n8n_data
+docker volume create n8n_data
+
 # n8nデータを復元（ファイル名を適宜変更）
-docker run --rm -v n8n_data:/data -v ~/n8n-backups:/backup alpine \
-  sh -c "rm -rf /data/* && tar xzf /backup/n8n-data-YYYYMMDD-HHMMSS.tar.gz -C /data"
+docker run --rm -v n8n_data:/data -v $HOME/n8n-backups:/backup alpine \
+  tar xzf /backup/n8n-data-YYYYMMDD-HHMMSS.tar.gz -C /data
 
 # Caddyデータを復元（必要な場合）
-docker run --rm -v caddy_data:/data -v ~/n8n-backups:/backup alpine \
-  sh -c "rm -rf /data/* && tar xzf /backup/caddy-data-YYYYMMDD-HHMMSS.tar.gz -C /data"
+docker volume rm caddy_data
+docker volume create caddy_data
+docker run --rm -v caddy_data:/data -v $HOME/n8n-backups:/backup alpine \
+  tar xzf /backup/caddy-data-YYYYMMDD-HHMMSS.tar.gz -C /data
 
 # n8nを再起動
 docker compose up -d
