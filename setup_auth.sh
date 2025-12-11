@@ -18,8 +18,17 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
-# 現在の設定を読み込む
-source .env
+# .envから必要な変数を安全に読み込む
+get_env_var() {
+    # .envファイルが存在しない場合のエラーを避ける
+    [ ! -f .env ] && return
+    grep "^$1=" .env | head -n 1 | cut -d'=' -f2-
+}
+
+BASIC_AUTH_USER=$(get_env_var BASIC_AUTH_USER)
+BASIC_AUTH_PASSWORD=$(get_env_var BASIC_AUTH_PASSWORD)
+SUBDOMAIN=$(get_env_var SUBDOMAIN)
+DOMAIN_NAME=$(get_env_var DOMAIN_NAME)
 
 # ユーザー名とパスワードの確認
 if [ -z "$BASIC_AUTH_USER" ] || [ -z "$BASIC_AUTH_PASSWORD" ]; then
@@ -40,8 +49,10 @@ fi
 
 echo "🔐 パスワードのハッシュを生成しています..."
 
+# compose.ymlからCaddyのバージョンを動的に取得
+CADDY_IMAGE=$(grep -E '^\s*image:\s*caddy:' compose.yml | sed 's/.*image:\s*//' | tr -d ' ')
 # Caddyコンテナを使用してパスワードハッシュを生成（標準入力経由で安全に渡す）
-PASSWORD_HASH=$(echo "$BASIC_AUTH_PASSWORD" | docker run --rm -i caddy:2.8.4 caddy hash-password)
+PASSWORD_HASH=$(echo "$BASIC_AUTH_PASSWORD" | docker run --rm -i "${CADDY_IMAGE:-caddy:2.8.4}" caddy hash-password)
 
 if [ -z "$PASSWORD_HASH" ]; then
     echo "❌ パスワードハッシュの生成に失敗しました。"
@@ -58,15 +69,12 @@ echo "📁 .envのバックアップを作成しました (.env.backup)"
 # .envファイルを更新（より堅牢な方法）
 # 一時ファイルを使用して安全に更新
 TEMP_ENV=$(mktemp)
-if grep -q "^BASIC_AUTH_PASSWORD_HASH=" .env; then
-    # 既存の行を削除して新しい行を追加
-    grep -v "^BASIC_AUTH_PASSWORD_HASH=" .env > "$TEMP_ENV"
-    echo "BASIC_AUTH_PASSWORD_HASH=$PASSWORD_HASH" >> "$TEMP_ENV"
-else
-    # 既存のファイルをコピーして新しい行を追加
-    cp .env "$TEMP_ENV"
-    echo "BASIC_AUTH_PASSWORD_HASH=$PASSWORD_HASH" >> "$TEMP_ENV"
-fi
+# スクリプト終了時に一時ファイルを削除
+trap 'rm -f "$TEMP_ENV"' EXIT
+
+# 既存の行を削除して新しい行を追加（簡潔なロジック）
+grep -v "^BASIC_AUTH_PASSWORD_HASH=" .env > "$TEMP_ENV"
+echo "BASIC_AUTH_PASSWORD_HASH=$PASSWORD_HASH" >> "$TEMP_ENV"
 
 # 一時ファイルを.envに移動
 mv "$TEMP_ENV" .env

@@ -3,7 +3,9 @@
 }
 
 {$SUBDOMAIN}.{$DOMAIN_NAME} {
-    basicauth * {
+    # Basic認証（環境変数が設定されている場合のみ有効）
+    @auth expression "{$BASIC_AUTH_USER}" != "" && "{$BASIC_AUTH_PASSWORD_HASH}" != ""
+    basicauth @auth {
         {$BASIC_AUTH_USER} {$BASIC_AUTH_PASSWORD_HASH}
     }
 
