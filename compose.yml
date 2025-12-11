@@ -10,7 +10,7 @@ services:
       - SUBDOMAIN=${SUBDOMAIN}
       - SSL_EMAIL=${SSL_EMAIL}
     volumes:
-      - ${DATA_FOLDER}/caddy_config/Caddyfile:/etc/caddy/Caddyfile
+      - ${DATA_FOLDER:-.}/caddy_config/Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config:/config
     networks:
@@ -47,7 +47,7 @@ services:
       - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
     volumes:
       - n8n_data:/home/node/.n8n
-      - ${DATA_FOLDER}/local_files:/files
+      - ${DATA_FOLDER:-.}/local_files:/files
     networks:
       - n8n-network
     healthcheck:

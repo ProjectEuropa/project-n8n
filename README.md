@@ -65,8 +65,7 @@ curl -fsSL https://get.docker.com | sh
 # 現在のユーザーをdockerグループに追加
 sudo usermod -aG docker $USER
 
-# 一度ログアウトして再ログイン
-exit
+# グループへの追加を反映させるため、ここで一度サーバーからログアウトし、再ログインしてください。
 ```
 
 ### 2. このリポジトリをクローン
@@ -115,7 +114,9 @@ dig n8n.example.com +short
 # UFWを使用している場合
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
-sudo ufw reload
+# (注意) ufwを有効にすると、許可されていないポートはすべてブロックされます。
+# SSH接続が切断されないよう、事前に 'sudo ufw allow <ssh_port>/tcp' を実行していることを確認してください。
+sudo ufw enable
 sudo ufw status
 ```
 
@@ -189,7 +190,7 @@ docker compose pull && docker compose up -d
 mkdir -p $HOME/n8n-backups
 
 # n8nを停止（データ整合性のため推奨）
-cd /root/n8n-docker-caddy && docker compose stop n8n
+docker compose stop n8n
 
 # n8nデータをバックアップ
 docker run --rm -v n8n_data:/data -v $HOME/n8n-backups:/backup alpine \
@@ -200,7 +201,7 @@ docker run --rm -v caddy_data:/data -v $HOME/n8n-backups:/backup alpine \
   tar czf /backup/caddy-data-$(date +%Y%m%d-%H%M%S).tar.gz -C /data .
 
 # n8nを再開
-cd /root/n8n-docker-caddy && docker compose start n8n
+docker compose start n8n
 ```
 
 ### 自動バックアップ（cron）
@@ -209,6 +210,11 @@ cd /root/n8n-docker-caddy && docker compose start n8n
 # バックアップスクリプトを作成
 cat << 'EOF' > $HOME/n8n-backup.sh
 #!/bin/bash
+# --------------------------------------------------
+# !! 注意 !!
+# ご自身の環境に合わせて、以下の N8N_DIR の値を変更してください。
+# 例: N8N_DIR=/home/ubuntu/n8n-docker-caddy
+# --------------------------------------------------
 BACKUP_DIR=$HOME/n8n-backups
 N8N_DIR=/root/n8n-docker-caddy
 DATE=$(date +%Y%m%d-%H%M%S)
@@ -313,6 +319,8 @@ sudo ufw default allow outgoing
 sudo ufw allow ssh
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
+# (注意) ufwを有効にすると、許可されていないポートはすべてブロックされます。
+# SSH接続が切断されないよう、事前に 'sudo ufw allow <ssh_port>/tcp' を実行していることを確認してください。
 sudo ufw enable
 ```
 
