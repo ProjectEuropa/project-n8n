@@ -47,14 +47,10 @@ fi
 
 echo "🔐 パスワードのハッシュを生成しています..."
 
-# compose.ymlからCaddyのバージョンを動的に取得
-CADDY_IMAGE=$(grep -E '^\s*image:\s*caddy:' compose.yml | head -n 1 | sed 's/.*image:\s*//' | tr -d ' ' | tr -d '\r')
-# イメージ名が取得できなかった場合のデフォルト値
-if [ -z "$CADDY_IMAGE" ]; then
-    CADDY_IMAGE="caddy:2.8.4"
-fi
+# Caddyイメージを固定値として使用（compose.ymlと一致）
+CADDY_IMAGE="caddy:2.8.4"
 # Caddyコンテナを使用してパスワードハッシュを生成（標準入力経由で安全に渡す）
-PASSWORD_HASH=$(echo "$BASIC_AUTH_PASSWORD" | docker run --rm -i "$CADDY_IMAGE" caddy hash-password)
+PASSWORD_HASH=$(echo "$BASIC_AUTH_PASSWORD" | docker run --rm -i $CADDY_IMAGE caddy hash-password)
 
 if [ -z "$PASSWORD_HASH" ]; then
     echo "❌ パスワードハッシュの生成に失敗しました。"
