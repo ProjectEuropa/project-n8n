@@ -79,9 +79,12 @@ TEMP_ENV=$(mktemp)
 # スクリプト終了時に一時ファイルを削除
 trap 'rm -f "$TEMP_ENV"' EXIT
 
+# Docker Composeで使用するため、$を$$にエスケープ
+ESCAPED_HASH=$(echo "$PASSWORD_HASH" | sed 's/\$/\$\$/g')
+
 # 既存の行を削除して新しい行を追加（簡潔なロジック）
 grep -v "^BASIC_AUTH_PASSWORD_HASH=" .env > "$TEMP_ENV"
-echo "BASIC_AUTH_PASSWORD_HASH=$PASSWORD_HASH" >> "$TEMP_ENV"
+echo "BASIC_AUTH_PASSWORD_HASH=$ESCAPED_HASH" >> "$TEMP_ENV"
 
 # 一時ファイルを.envに移動
 mv "$TEMP_ENV" .env
