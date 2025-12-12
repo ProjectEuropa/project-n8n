@@ -2,7 +2,7 @@
 # n8n + Caddy セットアップスクリプト
 # このスクリプトはn8nの初期セットアップを対話形式で実行します
 
-set -e
+set -euo pipefail
 
 echo "========================================="
 echo "  n8n + Caddy セットアップスクリプト"
@@ -141,8 +141,8 @@ EOF
     # バックアップ/リストアスクリプトのN8N_DIRを自動設定
     echo ""
     echo "▶ バックアップ/リストアスクリプトを設定中..."
-    # current_dir に特殊文字が含まれる可能性があるため、sedデリミタをエスケープ
-    escaped_dir=$(printf '%s\n' "$current_dir" | sed 's/|/\\|/g')
+    # current_dir に特殊文字が含まれる可能性があるため、sedで使用する特殊文字をエスケープ
+    escaped_dir=$(printf '%s\n' "$current_dir" | sed -e 's/[&\\|]/\\&/g')
     if [ -f "n8n-backup.sh" ]; then
         sed -i.bak "s|^N8N_DIR=.*|N8N_DIR=${escaped_dir}|" n8n-backup.sh
         rm -f n8n-backup.sh.bak
