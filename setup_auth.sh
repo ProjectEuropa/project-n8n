@@ -49,11 +49,20 @@ echo "🔐 パスワードのハッシュを生成しています..."
 
 # Caddyイメージを固定値として使用（compose.ymlと一致）
 CADDY_IMAGE="caddy:2.8.4"
-# Caddyコンテナを使用してパスワードハッシュを生成（標準入力経由で安全に渡す）
-PASSWORD_HASH=$(echo "$BASIC_AUTH_PASSWORD" | docker run --rm -i $CADDY_IMAGE caddy hash-password)
 
-if [ -z "$PASSWORD_HASH" ]; then
+# Caddyイメージをプル（静かに）
+docker pull "$CADDY_IMAGE" >/dev/null 2>&1
+
+# Caddyコンテナを使用してパスワードハッシュを生成（標準入力経由で安全に渡す）
+# 変数を引用符で囲んで安全に実行
+PASSWORD_HASH=$(echo "$BASIC_AUTH_PASSWORD" | docker run --rm -i "$CADDY_IMAGE" caddy hash-password)
+
+# エラーチェックを改善
+if [ -z "$PASSWORD_HASH" ] || [[ "$PASSWORD_HASH" == *"Error"* ]] || [[ "$PASSWORD_HASH" == *"error"* ]]; then
     echo "❌ パスワードハッシュの生成に失敗しました。"
+    if [ -n "$PASSWORD_HASH" ]; then
+        echo "   エラー内容: $PASSWORD_HASH"
+    fi
     exit 1
 fi
 
