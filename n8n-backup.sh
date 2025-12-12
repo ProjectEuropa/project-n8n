@@ -81,14 +81,15 @@ echo -e "${GREEN}✓${NC} バックアップディレクトリ: $BACKUP_DIR"
 echo ""
 
 # ディスクスペースチェック（最低2GBの空き容量が必要）
-available_space=$(df -BG "$BACKUP_DIR" | tail -1 | awk '{print $4}' | sed 's/G//')
-if [ "$available_space" -lt 2 ]; then
+available_space_kb=$(df -k "$BACKUP_DIR" | tail -1 | awk '{print $4}')
+available_space_gb=$((available_space_kb / 1024 / 1024))
+if [ "$available_space_gb" -lt 2 ]; then
     echo -e "${RED}エラー: ディスクスペースが不足しています${NC}"
     echo "バックアップディレクトリ ($BACKUP_DIR) に最低2GBの空き容量が必要です。"
-    echo "現在の空き容量: ${available_space}GB"
+    echo "現在の空き容量: ${available_space_gb}GB"
     exit 1
 fi
-echo -e "${GREEN}✓${NC} ディスクスペース確認: ${available_space}GB 利用可能"
+echo -e "${GREEN}✓${NC} ディスクスペース確認: ${available_space_gb}GB 利用可能"
 echo ""
 
 # n8nサービスを停止（データ整合性のため）
