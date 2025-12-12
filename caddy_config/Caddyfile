@@ -3,12 +3,18 @@
 }
 
 {$SUBDOMAIN}.{$DOMAIN_NAME} {
-    # Basic認証（環境変数が設定されている場合のみ有効）
-    @auth expression "{$BASIC_AUTH_USER}" != "" && "{$BASIC_AUTH_PASSWORD_HASH}" != ""
-    basicauth @auth {
+    # Basic認証が必要なリクエストを定義
+    # - /mcp/* パスは除く
+    # - 環境変数が設定されている場合のみ
+    @needs_auth {
+        not path /mcp/*
+        expression "{$BASIC_AUTH_USER}" != "" && "{$BASIC_AUTH_PASSWORD_HASH}" != ""
+    }
+    basicauth @needs_auth {
         {$BASIC_AUTH_USER} {$BASIC_AUTH_PASSWORD_HASH}
     }
 
+    # すべてのリクエストをn8nにプロキシ
     reverse_proxy n8n:5678 {
         flush_interval -1
     }
