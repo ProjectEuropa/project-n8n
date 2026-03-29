@@ -71,7 +71,7 @@ services:
         - >-
           node -e "const os=require('os');
           const ip=Object.values(os.networkInterfaces()).flat().find((x)=>x&&x.family==='IPv4'&&!x.internal)?.address||'127.0.0.1';
-          fetch(`http://$${ip}:18789/healthz`).then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+          fetch('http://' + ip + ':18789/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
       interval: 3m
       timeout: 10s
       start_period: 15s
