@@ -3,19 +3,16 @@
 }
 
 {$SUBDOMAIN}.{$DOMAIN_NAME} {
-    # Basic認証が必要なリクエストを定義
-    # - /mcp/* パスは除く
-    # - 環境変数が設定されている場合のみ
+    # Basic認証（環境変数が設定されている場合のみ有効）
     @needs_auth {
-        not path /mcp/*
         expression "{$BASIC_AUTH_USER}" != "" && "{$BASIC_AUTH_PASSWORD_HASH}" != ""
     }
     basicauth @needs_auth {
         {$BASIC_AUTH_USER} {$BASIC_AUTH_PASSWORD_HASH}
     }
 
-    # すべてのリクエストをn8nにプロキシ
-    reverse_proxy n8n:5678 {
+    # すべてのリクエストをOpenClawにプロキシ
+    reverse_proxy openclaw:18789 {
         flush_interval -1
     }
 
@@ -26,10 +23,9 @@
         Referrer-Policy "strict-origin-when-cross-origin"
         # HSTS（HTTPS強制、1年間）
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-        # CSP（n8n動作に必要な設定）
-        # NOTE: 'unsafe-inline' and 'unsafe-eval' are required for n8n's workflow editor functionality
-        # While these directives weaken CSP protection against XSS attacks, they are necessary
-        # for n8n's dynamic UI components and expression evaluator to function properly
+        # CSP（OpenClaw Web UI動作に必要な設定）
+        # NOTE: 'unsafe-inline' and 'unsafe-eval' are required for OpenClaw's Web UI functionality
+        # TODO: 動作確認後にCSPを絞る
         Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: wss:; frame-ancestors 'self'; form-action 'self'; base-uri 'self'; object-src 'none'"
         -Server
     }

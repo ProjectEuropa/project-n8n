@@ -1,54 +1,55 @@
-# n8n VPS セットアップ (Docker + Caddy)
+# OpenClaw VPS セットアップ (Docker + Caddy)
 
-n8nをVPS上でDocker + Caddyを使用して動作させるための設定ファイルです。
+OpenClawをVPS上でDocker + Caddyを使用して動作させるための設定ファイルです。
+Vertex AI Gemini をモデルプロバイダとして使用します。
 
 ## アーキテクチャ
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                        VPS                              │
-│  ┌───────────────────────────────────────────────────┐  │
-│  │                 Docker Network                    │  │
-│  │                                                   │  │
-│  │   ┌─────────┐      ┌─────────────────────────┐   │  │
-│  │   │  Caddy  │      │          n8n            │   │  │
-│  │   │  :80    │ ───▶ │         :5678           │   │  │
-│  │   │  :443   │      │   (内部ポートのみ)       │   │  │
-│  │   └─────────┘      └─────────────────────────┘   │  │
-│  │        │                      │                  │  │
-│  │        ▼                      ▼                  │  │
-│  │   caddy_data             n8n_data               │  │
-│  │   (SSL証明書)          (ワークフロー)            │  │
-│  └───────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────┘
-         ▲
-         │ HTTPS (自動SSL)
-         │
-    ユーザー
+┌──────────────────────────────────────────────────────┐
+│                      ConoHa VPS                       │
+│  ┌────────────────────────────────────────────────┐  │
+│  │                Docker Network                  │  │
+│  │                                                │  │
+│  │   ┌─────────┐    ┌───────────┐  ┌───────────┐ │  │
+│  │   │  Caddy  │    │  OpenClaw │  │ Watchtower│ │  │
+│  │   │  :80    │───▶│  :18789   │  │(自動更新) │ │  │
+│  │   │  :443   │    │  (Web UI) │  │           │ │  │
+│  │   └─────────┘    └───────────┘  └───────────┘ │  │
+│  │        │               │                       │  │
+│  │        ▼               ▼                       │  │
+│  │   caddy_data      openclaw_data                │  │
+│  │  (SSL証明書)    (設定・データ)                  │  │
+│  └────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────┘
+     ▲ HTTPS + Basic認証            Vertex AI Gemini ▲
+     │                                               │
+  ブラウザ                                        GCP API
 ```
 
 ## 推奨スペック
 
 | 用途 | CPU | メモリ | ストレージ |
 |------|-----|--------|------------|
-| 最小 | 1 vCPU | 2 GB | 20 GB |
+| 最小 | 1 vCPU | 2 GB (+swap) | 20 GB |
 | 推奨 | 2 vCPU | 4 GB | 40 GB |
-| 大規模 | 4 vCPU | 8 GB | 100 GB |
+
+> ⚠️ 2GB RAMの場合は2-4GBのswapを追加してください（setup-openclaw.shで設定可能）
 
 ## ファイル構成
 
 ```
 .
-├── compose.yml           # Docker Compose設定
-├── .env.example          # 環境変数テンプレート
-├── .env                  # 環境変数（要作成）
-├── setup.sh              # セットアップスクリプト（NEW）
-├── setup_auth.sh         # Basic認証設定スクリプト
-├── n8n-backup.sh         # バックアップスクリプト（NEW）
-├── n8n-restore.sh        # リストアスクリプト（NEW）
+├── compose.yml              # Docker Compose設定
+├── .env.example             # 環境変数テンプレート
+├── .env                     # 環境変数（要作成）
+├── setup-openclaw.sh        # セットアップスクリプト
+├── openclaw-backup.sh       # バックアップスクリプト
+├── openclaw-restore.sh      # リストアスクリプト
 ├── caddy_config/
-│   └── Caddyfile         # Caddyリバースプロキシ設定
-└── local_files/          # n8nファイル保存用
+│   └── Caddyfile            # Caddyリバースプロキシ設定
+└── workspace/               # OpenClawワークスペース
+    └── SOUL.md              # AI人格・日本語設定
 ```
 
 ## 前提条件
@@ -57,66 +58,102 @@ n8nをVPS上でDocker + Caddyを使用して動作させるための設定ファ
 - Docker および Docker Compose がインストール済み
 - ドメイン名（サブドメインのDNS設定済み）
 - 80/443 ポートが開放されていること
+- GCPプロジェクト（Vertex AI API 有効化済み）
+- GCPサービスアカウントキー
 
-## クイックスタート（推奨）
-
-初めてセットアップする場合は、対話形式のセットアップスクリプトを使用することを推奨します。
+## クイックスタート
 
 ```bash
 # 1. リポジトリをクローン
-git clone <repository-url> ~/n8n-docker-caddy
-cd ~/n8n-docker-caddy
+git clone <repository-url> ~/project-n8n
+cd ~/project-n8n
 
 # 2. セットアップスクリプトを実行
-chmod +x setup.sh
-./setup.sh
-```
+chmod +x setup-openclaw.sh
+./setup-openclaw.sh
 
-セットアップスクリプトは以下を自動的に実行します：
-- Dockerのインストール確認（未インストールの場合はインストール可能）
-- .envファイルの対話形式での作成
-- Dockerボリュームの作成
-- Basic認証の設定（オプション）
-- 必要なスクリプトへの実行権限付与
+# 3. GCP認証情報を配置
+# サービスアカウントキーを .env の GCP_CREDENTIALS_PATH で指定したパスに配置
 
-セットアップ完了後、DNSレコードを設定してから以下を実行：
+# 4. DNSレコードを設定（サブドメイン → VPSのIPアドレス）
 
-```bash
-# 3. n8nを起動
+# 5. ファイアウォール設定
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+
+# 6. OpenClawを起動
 docker compose up -d
 
-# 4. ログを確認
+# 7. ログを確認
 docker compose logs -f
 ```
 
-詳細な手動セットアップ手順については、下記の「セットアップ手順（手動）」を参照してください。
+## GCPセットアップ手順
+
+### 1. GCPプロジェクトの準備
+
+```bash
+# Vertex AI API を有効化
+gcloud services enable aiplatform.googleapis.com --project=YOUR_PROJECT_ID
+```
+
+### 2. サービスアカウントの作成
+
+```bash
+# サービスアカウント作成
+gcloud iam service-accounts create openclaw-vertex \
+  --display-name="OpenClaw Vertex AI" \
+  --project=YOUR_PROJECT_ID
+
+# Vertex AI 権限を付与
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+  --member="serviceAccount:openclaw-vertex@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/aiplatform.user"
+
+# 鍵ファイルを発行
+gcloud iam service-accounts keys create adc.json \
+  --iam-account=openclaw-vertex@YOUR_PROJECT_ID.iam.gserviceaccount.com
+```
+
+### 3. 鍵ファイルをVPSに配置
+
+```bash
+# ローカルからVPSに転送
+scp adc.json user@vps-ip:/root/.config/gcloud/adc.json
+
+# VPS上で権限を設定
+ssh user@vps-ip 'chmod 600 /root/.config/gcloud/adc.json'
+```
+
+### 4. 予算アラートの設定
+
+GCP Console → 課金 → 予算とアラートで、月額の上限を設定してください。
+API費用暴走防止のため必須です。
 
 ## セットアップ手順（手動）
 
 > **⚠️ セキュリティ上の重要な注意**
 >
 > rootユーザーでの日常的な操作は避けてください。セキュリティのベストプラクティスとして、以下を推奨します：
-> - 通常の管理作業には一般ユーザー（例：ubuntu、admin）を使用
+> - 通常の管理作業には一般ユーザーを使用
 > - sudoを必要な時のみ使用
-> - n8nのインストールディレクトリは一般ユーザーのホームディレクトリ配下に配置
 
 ### 1. VPSにDockerをインストール
 
 ```bash
-# Docker公式インストールスクリプト
 curl -fsSL https://get.docker.com | sh
-
-# 現在のユーザーをdockerグループに追加
 sudo usermod -aG docker $USER
-
-# グループへの追加を反映させるため、ここで一度サーバーからログアウトし、再ログインしてください。
+# 再ログインが必要
 ```
 
-### 2. このリポジトリをクローン
+### 2. Swap を追加（2GB RAM VPSの場合）
 
 ```bash
-git clone <repository-url> ~/n8n-docker-caddy
-cd ~/n8n-docker-caddy
+sudo fallocate -l 4G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 ```
 
 ### 3. 環境変数を設定
@@ -126,94 +163,69 @@ cp .env.example .env
 nano .env
 ```
 
-以下の値を自分の環境に合わせて編集：
-
 | 変数名 | 説明 | 例 |
 |--------|------|-----|
-| `DATA_FOLDER` | 設定ファイルのパス | `~/n8n-docker-caddy` |
 | `DOMAIN_NAME` | メインドメイン | `example.com` |
-| `SUBDOMAIN` | サブドメイン | `n8n` |
-| `GENERIC_TIMEZONE` | タイムゾーン | `Asia/Tokyo` |
+| `SUBDOMAIN` | サブドメイン | `ai` |
 | `SSL_EMAIL` | SSL証明書通知用メール | `your@email.com` |
+| `GCP_PROJECT_ID` | GCPプロジェクトID | `my-project-123` |
+| `GCP_CREDENTIALS_PATH` | サービスアカウントキーのパス | `~/.config/gcloud/adc.json` |
+| `VERTEX_AI_LOCATION` | Vertex AIリージョン | `asia-northeast1` |
 | `BASIC_AUTH_USER` | Basic認証ユーザー名 | `admin` |
-| `BASIC_AUTH_PASSWORD` | Basic認証パスワード | 強力なパスワードを設定 |
+| `BASIC_AUTH_PASSWORD_HASH` | Basic認証パスワードハッシュ | `setup-openclaw.sh` で自動生成 |
 
 ### 4. DNSレコードを設定
 
-DNS管理画面で、サブドメインをVPSのIPアドレスに向ける：
-
 ```
 タイプ: A
-名前: n8n
+名前: ai（サブドメイン）
 値: VPSのIPアドレス
-TTL: 3600（または自動）
-```
-
-設定後、反映を確認：
-```bash
-dig n8n.example.com +short
+TTL: 3600
 ```
 
 ### 5. ファイアウォールを設定
 
 ```bash
-# UFWを使用している場合
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow ssh
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
-# (注意) ufwを有効にすると、許可されていないポートはすべてブロックされます。
-# SSH接続が切断されないよう、事前に 'sudo ufw allow <ssh_port>/tcp' を実行していることを確認してください。
 sudo ufw enable
-sudo ufw status
 ```
 
 ### 6. Dockerボリュームを作成
 
 ```bash
 docker volume create caddy_data
-docker volume create n8n_data
+docker volume create openclaw_data
 ```
 
-### 7. Basic認証をセットアップ（オプション）
-
-n8nへのアクセスをBasic認証で保護する場合：
+### 7. OpenClawを起動
 
 ```bash
-# パスワードハッシュを生成
-./setup_auth.sh
-```
-
-このスクリプトは以下を実行します：
-- .envファイルのBASIC_AUTH_PASSWORDを読み取る
-- Caddyで使用するパスワードハッシュを生成
-- .envファイルにBASIC_AUTH_PASSWORD_HASHを追加
-
-### 8. n8nを起動
-
-```bash
-# Verify .env file exists and is configured
-if [ ! -f .env ]; then
-  echo "Error: .env file not found. Please copy .env.example to .env and configure it."
-  exit 1
-fi
-
-# Start the services
 docker compose up -d
-```
-
-### 9. 動作確認
-
-```bash
-# コンテナの状態を確認（両方 healthy になるまで待つ）
-docker compose ps
-
-# ログを確認
 docker compose logs -f
 ```
 
-ブラウザで `https://n8n.example.com` にアクセス
+ブラウザで `https://ai.example.com` にアクセスしてください。
+（Basic認証を設定した場合は、設定したユーザー名とパスワードでログインします。）
 
-Basic認証を設定した場合は、設定したユーザー名とパスワードでログインします。
-その後、初回アクセス時にn8nのアカウント作成画面が表示されます。
+### 8. 初回アクセス時のデバイス承認 (Pairing)
+
+OpenClawのWeb UI（Dashboard）に初めてアクセスすると「pairing required」と表示され、接続が待機状態になります。これは未知のデバイスからのアクセスを防ぐためのセキュリティ機能です。
+
+VPSのターミナルで以下のコマンドを実行し、アクセスを承認してください。
+
+```bash
+# 保留中のペアリングリクエストを確認
+docker compose exec openclaw openclaw devices list
+
+# 該当する Request ID（例: 753d6374-b841-...）をコピーし、approve します
+docker compose exec openclaw openclaw devices approve <Request ID>
+```
+
+承認が完了すると、ブラウザの画面が自動的に操作可能な状態（Chat UI）に切り替わります。
 
 ## 管理コマンド
 
@@ -222,11 +234,12 @@ Basic認証を設定した場合は、設定したユーザー名とパスワー
 docker compose logs -f
 
 # 特定サービスのログ
-docker compose logs -f n8n
+docker compose logs -f openclaw
 docker compose logs -f caddy
+docker compose logs -f watchtower
 
-# n8nを再起動
-docker compose restart n8n
+# OpenClawを再起動
+docker compose restart openclaw
 
 # 全サービス再起動
 docker compose restart
@@ -234,16 +247,10 @@ docker compose restart
 # 停止
 docker compose down
 
-# ヘルスチェック状態を確認
-docker compose ps
-
 # リソース使用状況
 docker stats
 
-# n8nシェルに入る
-docker compose exec n8n sh
-
-# 更新
+# 更新（Watchtowerが自動で行うが、手動の場合）
 docker compose pull && docker compose up -d
 ```
 
@@ -251,142 +258,40 @@ docker compose pull && docker compose up -d
 
 ### スクリプトを使用したバックアップ（推奨）
 
-バックアップスクリプトを使用すると、n8nデータとCaddyデータ（SSL証明書）を簡単にバックアップできます。
-
 ```bash
-# 1. スクリプト内のN8N_DIRを設定（setup.sh未使用時のみ）
-# setup.shを実行した場合、この手順は不要です（自動設定済み）
-nano n8n-backup.sh
-# N8N_DIR=/path/to/your/n8n-docker-caddy を実際のパスに変更
-# 例: N8N_DIR=/home/ubuntu/n8n-docker-caddy
+# 1. スクリプト内のAPP_DIRを設定（setup-openclaw.sh未使用時のみ）
+nano openclaw-backup.sh
+# APP_DIR=/path/to/your/project-n8n を実際のパスに変更
 
 # 2. バックアップを実行
-chmod +x n8n-backup.sh
-./n8n-backup.sh
+chmod +x openclaw-backup.sh
+./openclaw-backup.sh
 ```
 
-バックアップスクリプトの機能：
-- n8nサービスの自動停止・再開
-- n8nデータのバックアップ
-- Caddyデータ（SSL証明書）のバックアップ
-- 7日以上古いバックアップの自動削除
-- エラーハンドリングと詳細なログ出力
+バックアップ対象：
+- OpenClawデータ（`openclaw_data` ボリューム）
+- ワークスペース（`workspace/` ディレクトリ）
+- Caddyデータ（SSL証明書）
 
-バックアップファイルは `$HOME/n8n-backups/` に保存されます。
+バックアップファイルは `$HOME/openclaw-backups/` に保存されます。
+7日以上古いバックアップは自動削除されます。
 
 ### 自動バックアップ（cron）
 
-cronを使用してバックアップを自動化できます：
-
 ```bash
-# cronに登録（毎日午前3時に実行）
-# /path/to/your/n8n-docker-caddy を実際のパスに置き換えてください
-(crontab -l 2>/dev/null; echo "0 3 * * * /path/to/your/n8n-docker-caddy/n8n-backup.sh >> $HOME/n8n-backup.log 2>&1") | crontab -
-
-# 例: ~/n8n-docker-caddy にインストールした場合
-# (crontab -l 2>/dev/null; echo "0 3 * * * $HOME/n8n-docker-caddy/n8n-backup.sh >> $HOME/n8n-backup.log 2>&1") | crontab -
+# 毎日午前3時に実行
+(crontab -l 2>/dev/null; echo "0 3 * * * /path/to/project-n8n/openclaw-backup.sh >> $HOME/openclaw-backup.log 2>&1") | crontab -
 ```
 
-### 手動バックアップ
-
-**注意**: データの整合性を保つため、バックアップ前にn8nを停止することを推奨します。
+### バックアップからの復元
 
 ```bash
-# バックアップディレクトリを作成
-mkdir -p $HOME/n8n-backups
-
-# n8nを停止（データ整合性のため推奨）
-docker compose stop n8n
-
-# n8nデータをバックアップ
-docker run --rm -v n8n_data:/data -v $HOME/n8n-backups:/backup alpine \
-  tar czf /backup/n8n-data-$(date +%Y%m%d-%H%M%S).tar.gz -C /data .
-
-# Caddyデータをバックアップ（SSL証明書含む）
-docker run --rm -v caddy_data:/data -v $HOME/n8n-backups:/backup alpine \
-  tar czf /backup/caddy-data-$(date +%Y%m%d-%H%M%S).tar.gz -C /data .
-
-# n8nを再開
-docker compose start n8n
-```
-
-### バックアップからの復元（スクリプト使用）
-
-リストアスクリプトを使用すると、バックアップからの復元が簡単になります。
-
-```bash
-# 1. スクリプト内のN8N_DIRを設定（setup.sh未使用時のみ）
-nano n8n-restore.sh
-# N8N_DIR=/path/to/your/n8n-docker-caddy を実際のパスに変更
-# 例: N8N_DIR=/home/ubuntu/n8n-docker-caddy
-
-# 2. 利用可能なバックアップを確認してリストアを実行
-chmod +x n8n-restore.sh
-./n8n-restore.sh
+chmod +x openclaw-restore.sh
+./openclaw-restore.sh
 
 # または、特定のバックアップを直接指定
-./n8n-restore.sh 20250101-120000
+./openclaw-restore.sh 20260401-120000
 ```
-
-リストアスクリプトの機能：
-- 利用可能なバックアップの一覧表示
-- 既存ボリュームの削除と再作成
-- バックアップデータの復元
-- 確認プロンプトによる安全性の確保
-- n8nサービスの自動起動
-
-### バックアップからの復元（手動）
-
-```bash
-# n8nを停止
-docker compose down
-
-# 既存ボリュームを削除して再作成（確実な復元のため）
-docker volume rm n8n_data
-docker volume create n8n_data
-
-# n8nデータを復元（ファイル名を適宜変更）
-docker run --rm -v n8n_data:/data -v $HOME/n8n-backups:/backup alpine \
-  tar xzf /backup/n8n-data-YYYYMMDD-HHMMSS.tar.gz -C /data
-
-# Caddyデータを復元（必要な場合）
-docker volume rm caddy_data
-docker volume create caddy_data
-docker run --rm -v caddy_data:/data -v $HOME/n8n-backups:/backup alpine \
-  tar xzf /backup/caddy-data-YYYYMMDD-HHMMSS.tar.gz -C /data
-
-# n8nを再起動
-docker compose up -d
-```
-
-## アップグレード
-
-### n8nのアップグレード手順
-
-```bash
-# 1. バックアップを取得（上記参照）
-~/n8n-backup.sh
-
-# 2. 現在のバージョンを確認
-docker compose exec n8n n8n --version
-
-# 3. compose.ymlでn8nのバージョンを更新
-# compose.ymlのimageタグを希望する新しいバージョンに変更してください
-nano compose.yml
-
-# 4. イメージを更新して再起動
-docker compose pull n8n
-docker compose up -d n8n
-
-# 5. 動作確認
-docker compose ps
-docker compose logs n8n
-
-# 6. 新しいバージョンを確認
-docker compose exec n8n n8n --version
-```
-
-**注意**: メジャーバージョンアップ時は[リリースノート](https://github.com/n8n-io/n8n/releases)を確認してください。
 
 ## セキュリティ
 
@@ -394,8 +299,10 @@ docker compose exec n8n n8n --version
 
 - HTTPS自動化（Let's Encrypt）
 - セキュリティヘッダー（XSS, Clickjacking対策）
-- n8nポートの内部限定公開
+- OpenClawポートの内部限定公開
 - Serverヘッダーの非公開
+- Basic認証によるアクセス制御
+- GCP認証情報のread-onlyマウント
 
 ### 追加推奨設定
 
@@ -405,28 +312,9 @@ sudo apt install fail2ban -y
 sudo systemctl enable fail2ban
 sudo systemctl start fail2ban
 
-# 不要なポートを閉じる
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow ssh
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-# (注意) ufwを有効にすると、許可されていないポートはすべてブロックされます。
-# SSH接続が切断されないよう、事前に 'sudo ufw allow <ssh_port>/tcp' を実行していることを確認してください。
-sudo ufw enable
-```
-
-### n8n認証設定
-
-初回アクセス時に管理者アカウントを作成します。強力なパスワードを設定してください。
-
-追加の認証オプション（compose.ymlのenvironmentに追加）：
-
-```yaml
-# Basic認証を追加する場合
-- N8N_BASIC_AUTH_ACTIVE=true
-- N8N_BASIC_AUTH_USER=admin
-- N8N_BASIC_AUTH_PASSWORD=your-strong-password
+# unattended-upgradesの有効化
+sudo apt install unattended-upgrades -y
+sudo dpkg-reconfigure -plow unattended-upgrades
 ```
 
 ## トラブルシューティング
@@ -435,48 +323,23 @@ sudo ufw enable
 
 ```bash
 # DNSが正しく設定されているか確認
-dig n8n.example.com +short
+dig ai.example.com +short
 
 # Caddyのログを確認
 docker compose logs caddy
-
-# 証明書の状態を確認
-docker compose exec caddy caddy list-certificates
 ```
 
-**原因と対策**:
-- DNSレコードが未反映 → 数分〜数時間待つ
-- ポート80/443がブロック → ファイアウォール確認
-- Let's Encryptのレート制限 → 1時間後に再試行
-
-### n8nにアクセスできない
+### OpenClawにアクセスできない
 
 ```bash
 # コンテナの状態を確認
 docker compose ps
 
-# ヘルスチェックの詳細
-docker inspect --format='{{json .State.Health}}' $(docker compose ps -q n8n) | jq
-
 # ログを確認
-docker compose logs n8n
+docker compose logs openclaw
 
 # ネットワーク確認
 docker network ls
-docker network inspect n8n-docker-caddy_n8n-network
-```
-
-### コンテナが起動しない
-
-```bash
-# 詳細ログを確認
-docker compose logs --tail=100
-
-# 設定ファイルの構文チェック
-docker compose config
-
-# ボリュームの確認
-docker volume ls
 ```
 
 ### メモリ不足
@@ -486,68 +349,40 @@ docker volume ls
 free -h
 docker stats --no-stream
 
-# スワップを追加（必要な場合）
-sudo fallocate -l 2G /swapfile
-sudo chmod 600 /swapfile
-sudo mkswap /swapfile
-sudo swapon /swapfile
-echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+# Swapの確認
+swapon --show
 ```
 
-## FAQ
+### GCP認証エラー
 
-### Q: Webhookが動作しない
+```bash
+# 認証情報ファイルの確認
+ls -la /root/.config/gcloud/adc.json
 
-A: `WEBHOOK_URL`が正しく設定されているか確認してください。URLの末尾にスラッシュが必要です。
-
-### Q: ワークフローの実行が遅い
-
-A: VPSのスペックを確認してください。推奨は2 vCPU / 4GB RAM以上です。
-
-**リソース制限の調整が必要な場合**:
-- 20以上のアクティブなワークフロー、または1日500以上の実行がある場合は、`compose.yml`のメモリ制限を4GB以上に増やすことを検討してください
-- `deploy.resources.limits.memory`を`4096M`に変更
-- CPUリソースも必要に応じて調整してください
-
-### Q: 複数ユーザーで使いたい
-
-A: n8nはデフォルトでマルチユーザー対応です。管理者がユーザーを招待できます。
-
-### Q: 外部データベースを使いたい
-
-A: compose.ymlに以下の環境変数を追加：
-
-```yaml
-- DB_TYPE=postgresdb
-- DB_POSTGRESDB_HOST=your-db-host
-- DB_POSTGRESDB_PORT=5432
-- DB_POSTGRESDB_DATABASE=n8n
-- DB_POSTGRESDB_USER=n8n
-- DB_POSTGRESDB_PASSWORD=your-password
+# コンテナ内から認証ファイルの存在確認（内容は表示しない）
+docker compose exec openclaw ls -la /tmp/keys/adc.json
 ```
 
-### Q: メール送信を設定したい
+## 運用コスト見込み
 
-A: compose.ymlに以下の環境変数を追加：
+| 項目 | 月額 |
+|---|---|
+| ConoHa VPS 2GB | ~1,500円 |
+| Vertex AI Gemini Flash | 0〜1,000円 |
+| **合計** | **~1,500〜2,500円** |
 
-```yaml
-- N8N_EMAIL_MODE=smtp
-- N8N_SMTP_HOST=smtp.example.com
-- N8N_SMTP_PORT=587
-- N8N_SMTP_USER=your-email@example.com
-- N8N_SMTP_PASS=your-password
-- N8N_SMTP_SENDER=n8n@example.com
-```
+## 今後の予定
+
+- [ ] WIFキーレス化（#14）: GitHub Actions + Workload Identity Federationでサービスアカウントキーを廃止
+- [ ] CSPヘッダーの最適化: OpenClaw Web UIの動作確認後にCSPを絞る
 
 ## 参考リンク
 
-- [n8n公式ドキュメント](https://docs.n8n.io/)
-- [n8n-docker-caddy公式リポジトリ](https://github.com/n8n-io/n8n-docker-caddy)
-- [n8n環境変数一覧](https://docs.n8n.io/hosting/configuration/environment-variables/)
+- [OpenClaw公式ドキュメント](https://docs.openclaw.ai)
+- [Vertex AI設定ガイド](https://docs.openclaw.ai/concepts/model-providers)
 - [Caddy公式ドキュメント](https://caddyserver.com/docs/)
-- [n8nリリースノート](https://github.com/n8n-io/n8n/releases)
+- [Watchtower](https://github.com/containrrr/watchtower)
 
 ## ライセンス
 
 このリポジトリの設定ファイルはMITライセンスです。
-n8n自体は[Sustainable Use License](https://github.com/n8n-io/n8n/blob/master/LICENSE.md)に従います。
