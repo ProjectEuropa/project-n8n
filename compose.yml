@@ -41,8 +41,8 @@ services:
     expose:
       - "18789"
     volumes:
-      - openclaw_data:/home/openclaw/.openclaw
-      - ./workspace:/home/openclaw/workspace
+      - openclaw_data:/home/node/.openclaw
+      - ./workspace:/home/node/workspace
       - ${GCP_CREDENTIALS_PATH:-./credentials/adc.json}:/tmp/keys/adc.json:ro
     environment:
       - GOOGLE_APPLICATION_CREDENTIALS=/tmp/keys/adc.json
@@ -63,6 +63,19 @@ services:
       options:
         max-size: "20m"
         max-file: "5"
+    healthcheck:
+      # The OpenClaw image defaults to gateway.bind=lan in containers, so
+      # probing 127.0.0.1 can fail even when the gateway is healthy.
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "const os=require('os');
+          const ip=Object.values(os.networkInterfaces()).flat().find((x)=>x&&x.family==='IPv4'&&!x.internal)?.address||'127.0.0.1';
+          fetch(`http://$${ip}:18789/healthz`).then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 3m
+      timeout: 10s
+      start_period: 15s
+      retries: 3
     deploy:
       resources:
         limits:
@@ -104,16 +117,3 @@ volumes:
   caddy_config:
   openclaw_data:
     external: true
-    healthcheck:
-      # The OpenClaw image defaults to gateway.bind=lan in containers, so
-      # probing 127.0.0.1 can fail even when the gateway is healthy.
-      test:
-        - CMD-SHELL
-        - >-
-          node -e "const os=require('os');
-          const ip=Object.values(os.networkInterfaces()).flat().find((x)=>x&&x.family==='IPv4'&&!x.internal)?.address||'127.0.0.1';
-          fetch(`http://${ip}:18789/healthz`).then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-      interval: 3m
-      timeout: 10s
-      start_period: 15s
-      retries: 3
