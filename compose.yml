@@ -48,8 +48,8 @@ services:
       - GOOGLE_APPLICATION_CREDENTIALS=/tmp/keys/adc.json
       - GOOGLE_CLOUD_PROJECT=${GCP_PROJECT_ID}
       - OPENCLAW_MODEL_PROVIDER=google-vertex
-      - OPENCLAW_MODEL=gemini-flash
-      - VERTEX_AI_LOCATION=${VERTEX_AI_LOCATION:-asia-northeast1}
+      - OPENCLAW_MODEL=gemini-2.5-flash
+      - GOOGLE_CLOUD_LOCATION=${VERTEX_AI_LOCATION:-global}
       - NODE_OPTIONS=--max-old-space-size=2048
       - TZ=Asia/Tokyo
     networks:
