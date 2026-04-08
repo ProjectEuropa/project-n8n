@@ -8,25 +8,29 @@
 }
 
 {$SUBDOMAIN}.{$DOMAIN_NAME} {
-    # IP制限（環境変数が設定されている場合のみ有効）
+    # Route order matters here: reject non-allowlisted IPs before auth.
     @blocked_ip {
         expression "{$ALLOWED_IPS}" != ""
         not client_ip {$ALLOWED_IPS:0.0.0.0/0 ::/0}
     }
-    respond @blocked_ip 403
-
-    # Basic認証（環境変数が設定されている場合のみ有効）
-    @needs_auth {
-        expression "{$BASIC_AUTH_USER}" != "" && "{$BASIC_AUTH_PASSWORD_HASH}" != ""
-    }
-    basic_auth @needs_auth {
-        # Default to a non-meaningful placeholder hash so no weak credential is embedded.
-        {$BASIC_AUTH_USER:dummy} {$BASIC_AUTH_PASSWORD_HASH:$2a$14$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXabcdefg}
+    handle @blocked_ip {
+        respond "Forbidden" 403
     }
 
-    # すべてのリクエストをOpenFangにプロキシ
-    reverse_proxy openfang:8080 {
-        flush_interval -1
+    handle {
+        # Basic認証（環境変数が設定されている場合のみ有効）
+        @needs_auth {
+            expression "{$BASIC_AUTH_USER}" != "" && "{$BASIC_AUTH_PASSWORD_HASH}" != ""
+        }
+        basic_auth @needs_auth {
+            # Default to a non-meaningful placeholder hash so no weak credential is embedded.
+            {$BASIC_AUTH_USER:dummy} {$BASIC_AUTH_PASSWORD_HASH:$2a$14$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXabcdefg}
+        }
+
+        # すべてのリクエストをOpenFangにプロキシ
+        reverse_proxy openfang:8080 {
+            flush_interval -1
+        }
     }
 
     header {
