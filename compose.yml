@@ -9,6 +9,7 @@ services:
       - DOMAIN_NAME=${DOMAIN_NAME}
       - SUBDOMAIN=${SUBDOMAIN}
       - SSL_EMAIL=${SSL_EMAIL}
+      - TRUSTED_PROXIES=${TRUSTED_PROXIES:-}
       - ALLOWED_IPS=${ALLOWED_IPS:-}
       - BASIC_AUTH_USER=${BASIC_AUTH_USER:-}
       - BASIC_AUTH_PASSWORD_HASH=${BASIC_AUTH_PASSWORD_HASH:-}
@@ -19,7 +20,7 @@ services:
     networks:
       - app-network
     depends_on:
-      - openclaw
+      - openfang
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -36,22 +37,21 @@ services:
         limits:
           memory: 256M
 
-  openclaw:
-    image: ghcr.io/openclaw/openclaw:latest
+  openfang:
+    build:
+      context: ./openfang_config
+      dockerfile: Dockerfile
     restart: unless-stopped
     expose:
-      - "18789"
+      - "8080"
     volumes:
-      - openclaw_data:/home/node/.openclaw
-      - ./workspace:/home/node/workspace
-      - ${GCP_CREDENTIALS_PATH:-./credentials/adc.json}:/tmp/keys/adc.json:ro
+      - openfang_data:/data
+      - ./openfang_config/config.toml:/data/config.toml:ro
+      - ${GCP_CREDENTIALS_PATH:-./credentials/adc.json}:/run/secrets/gcp-sa.json:ro
     environment:
-      - GOOGLE_APPLICATION_CREDENTIALS=/tmp/keys/adc.json
+      - GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/gcp-sa.json
       - GOOGLE_CLOUD_PROJECT=${GCP_PROJECT_ID}
-      - OPENCLAW_MODEL_PROVIDER=google-vertex
-      - OPENCLAW_MODEL=gemini-2.5-flash
-      - GOOGLE_CLOUD_LOCATION=${VERTEX_AI_LOCATION:-global}
-      - NODE_OPTIONS=--max-old-space-size=2048
+      - GOOGLE_CLOUD_REGION=${VERTEX_AI_LOCATION:-global}
       - TZ=Asia/Tokyo
     networks:
       - app-network
@@ -59,30 +59,23 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:50051/api/status 2>/dev/null || wget -qO- http://localhost:50051/ > /dev/null 2>&1 || exit 1"]
+      interval: 1m
+      timeout: 10s
+      start_period: 30s
+      retries: 3
     logging:
       driver: "json-file"
       options:
         max-size: "20m"
         max-file: "5"
-    healthcheck:
-      # The OpenClaw image defaults to gateway.bind=lan in containers, so
-      # probing 127.0.0.1 can fail even when the gateway is healthy.
-      test:
-        - CMD-SHELL
-        - >-
-          node -e "const os=require('os');
-          const ip=Object.values(os.networkInterfaces()).flat().find((x)=>x&&x.family==='IPv4'&&!x.internal)?.address||'127.0.0.1';
-          fetch('http://' + ip + ':18789/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-      interval: 3m
-      timeout: 10s
-      start_period: 15s
-      retries: 3
     deploy:
       resources:
         limits:
-          memory: 2560M
+          memory: 512M
         reservations:
-          memory: 1024M
+          memory: 128M
 
   watchtower:
     image: containrrr/watchtower:1.7.1
@@ -115,6 +108,8 @@ networks:
 volumes:
   caddy_data:
     external: true
+    name: ${CADDY_DATA_VOLUME:-caddy_data}
   caddy_config:
-  openclaw_data:
-    external: true
+    name: ${CADDY_CONFIG_VOLUME:-caddy_config}
+  openfang_data:
+    name: ${OPENFANG_DATA_VOLUME:-openfang_data}

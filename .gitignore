@@ -2,6 +2,7 @@
 .env.*
 compose.local.yml
 .idea
+dist/
 
 # GCP認証情報
 credentials/
@@ -12,3 +13,7 @@ credentials/
 workspace/*
 !workspace/.gitkeep
 !workspace/SOUL.md
+
+# OpenFang設定（APIキー等を含む可能性）
+# config.toml はコミットするが、secrets は除外
+openfang_config/secrets.toml

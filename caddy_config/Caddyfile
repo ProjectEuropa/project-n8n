@@ -23,8 +23,8 @@
         {$BASIC_AUTH_USER:dummy} {$BASIC_AUTH_PASSWORD_HASH:$2a$14$WbN.ZAUEIh6MqhL8KLMCQuVRpHL3PN/UQLPNVzB49/ivReakK7N.K}
     }
 
-    # すべてのリクエストをOpenClawにプロキシ
-    reverse_proxy openclaw:18789 {
+    # すべてのリクエストをOpenFangにプロキシ
+    reverse_proxy openfang:8080 {
         flush_interval -1
     }
 
@@ -35,8 +35,8 @@
         Referrer-Policy "strict-origin-when-cross-origin"
         # HSTS（HTTPS強制、1年間）
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-        # CSP（OpenClaw Web UI動作に必要な設定）
-        # NOTE: 'unsafe-inline' and 'unsafe-eval' are required for OpenClaw's Web UI functionality
+        # CSP（OpenFang Web UI動作に必要な設定）
+        # NOTE: 'unsafe-inline' and 'unsafe-eval' are required for OpenFang's Web UI functionality
         # TODO: 動作確認後にCSPを絞る
         Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: wss:; frame-ancestors 'self'; form-action 'self'; base-uri 'self'; object-src 'none'"
         -Server
