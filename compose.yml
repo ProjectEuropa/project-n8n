@@ -37,6 +37,26 @@ services:
         limits:
           memory: 256M
 
+  ollama:
+    image: ollama/ollama:latest
+    profiles:
+      - ollama
+    restart: unless-stopped
+    network_mode: "service:openfang"
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+    volumes:
+      - ollama_data:/root/.ollama
+    depends_on:
+      - openfang
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
   openfang:
     build:
       context: ./openfang_config
@@ -116,3 +136,5 @@ volumes:
     name: ${CADDY_CONFIG_VOLUME:-caddy_config}
   openfang_data:
     name: ${OPENFANG_DATA_VOLUME:-openfang_data}
+  ollama_data:
+    name: ${OLLAMA_DATA_VOLUME:-ollama_data}
