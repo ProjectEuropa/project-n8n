@@ -36,6 +36,7 @@ OpenFang を Docker Compose + Caddy で VPS に載せるためのリポジトリ
 - `.env.example`
 - `caddy_config/Caddyfile`
 - `openfang_config/*`
+- `OPENFANG_SHA256_AMD64` / `OPENFANG_SHA256_ARM64`
 
 ## 2. VPS 用バンドルを生成
 
@@ -113,3 +114,4 @@ docker compose up -d --build
 - `.env` や `credentials/` 配下はコミットしません。
 - `openfang` は Caddy 経由で使う前提なので、Compose ではホストポートを直接開けていません。
 - GCP サービスアカウントキーを同梱する場合は、VPS 上の `credentials/adc.json` に配置してください。
+- `OPENFANG_SHA256_AMD64` / `OPENFANG_SHA256_ARM64` を空のままにすると、`openfang` のビルドは失敗します。

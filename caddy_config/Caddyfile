@@ -20,7 +20,8 @@
         expression "{$BASIC_AUTH_USER}" != "" && "{$BASIC_AUTH_PASSWORD_HASH}" != ""
     }
     basic_auth @needs_auth {
-        {$BASIC_AUTH_USER:dummy} {$BASIC_AUTH_PASSWORD_HASH:$2a$14$WbN.ZAUEIh6MqhL8KLMCQuVRpHL3PN/UQLPNVzB49/ivReakK7N.K}
+        # Default to a non-meaningful placeholder hash so no weak credential is embedded.
+        {$BASIC_AUTH_USER:dummy} {$BASIC_AUTH_PASSWORD_HASH:$2a$14$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXabcdefg}
     }
 
     # すべてのリクエストをOpenFangにプロキシ

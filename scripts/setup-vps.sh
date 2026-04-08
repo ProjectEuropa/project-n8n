@@ -125,6 +125,13 @@ if [ "$recreate_env" = true ]; then
     vertex_location=${vertex_location:-asia-northeast1}
     validate_input "$vertex_location" "Vertex AI リージョン"
 
+    echo "対象アーキテクチャの OpenFang SHA-256 を入力してください。"
+    echo "未使用アーキテクチャ側は空でも構いません。"
+    read -r -p "OPENFANG_SHA256_AMD64: " openfang_sha256_amd64
+    validate_input "$openfang_sha256_amd64" "OPENFANG_SHA256_AMD64"
+    read -r -p "OPENFANG_SHA256_ARM64: " openfang_sha256_arm64
+    validate_input "$openfang_sha256_arm64" "OPENFANG_SHA256_ARM64"
+
     read -r -p "許可 IP (空で無効): " allowed_ips
     validate_input "$allowed_ips" "許可 IP"
 
@@ -162,6 +169,8 @@ ALLOWED_IPS=${allowed_ips}
 GCP_PROJECT_ID=${gcp_project_id}
 GCP_CREDENTIALS_PATH=${gcp_cred_path}
 VERTEX_AI_LOCATION=${vertex_location}
+OPENFANG_SHA256_AMD64=${openfang_sha256_amd64}
+OPENFANG_SHA256_ARM64=${openfang_sha256_arm64}
 
 OPENFANG_DATA_VOLUME=openfang_data
 CADDY_DATA_VOLUME=caddy_data

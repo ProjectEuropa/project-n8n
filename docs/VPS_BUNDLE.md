@@ -15,6 +15,7 @@ docker compose up -d --build
 - DNS が VPS を向いていること
 - 80/443 が開いていること
 - `credentials/adc.json` または `.env` で指定した GCP 認証ファイルが存在すること
+- `.env` に対象アーキテクチャの `OPENFANG_SHA256_*` が設定されていること
 
 ## 日常運用
 
