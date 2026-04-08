@@ -1,0 +1,16 @@
+# OpenFang Agent OS — Configuration
+# Vertex AI (Google Cloud) をモデルプロバイダとして使用
+
+[default_model]
+provider = "vertex-ai"
+model = "gemini-2.5-flash"
+# api_key_env は不要 (OAuth2 / GOOGLE_APPLICATION_CREDENTIALS で認証)
+
+# HTTP API / Dashboard のバインドアドレス（Docker内でCaddyからアクセス可能にするため）
+api_listen = "0.0.0.0:50051"
+
+[network]
+listen_addr = "0.0.0.0:4200"
+
+[memory]
+decay_rate = 0.05

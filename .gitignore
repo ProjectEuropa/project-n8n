@@ -1,9 +1,19 @@
-# 環境変数（機密情報を含む）
 .env
-.env.backup
-
+.env.*
+compose.local.yml
 .idea
+dist/
 
-# ローカルファイル
-local_files/*
-!local_files/.gitkeep
+# GCP認証情報
+credentials/
+*.json
+!package.json
+
+# OpenClawワークスペース
+workspace/*
+!workspace/.gitkeep
+!workspace/SOUL.md
+
+# OpenFang設定（APIキー等を含む可能性）
+# config.toml はコミットするが、secrets は除外
+openfang_config/secrets.toml
