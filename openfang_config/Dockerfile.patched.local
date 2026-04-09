@@ -2,6 +2,7 @@ FROM rust:1.85-bookworm AS builder
 
 ARG OPENFANG_SOURCE_REPO=https://github.com/RightNow-AI/openfang
 ARG OPENFANG_SOURCE_REF=v0.5.6
+ARG OPENFANG_SOURCE_COMMIT=
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -21,6 +22,9 @@ RUN if [ -f /tmp/upstream-src/Cargo.toml ]; then \
       cp -R /tmp/upstream-src /src/openfang; \
     else \
       git clone --depth 1 --branch "${OPENFANG_SOURCE_REF}" "${OPENFANG_SOURCE_REPO}" /src/openfang; \
+      if [ -n "${OPENFANG_SOURCE_COMMIT}" ]; then \
+        test "$(git -C /src/openfang rev-parse HEAD)" = "${OPENFANG_SOURCE_COMMIT}"; \
+      fi; \
     fi
 
 WORKDIR /src/openfang
@@ -32,6 +36,8 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/src/openfang/target \
     perl -0pi -e 's/currentAgent \? currentAgent\.model_provider \+ \x27:\x27 \+ currentAgent\.model_name : \x27\x27/currentAgent ? formatProviderModel(currentAgent.model_provider, currentAgent.model_name) : \x27\x27/' /src/openfang/crates/openfang-api/static/index_body.html && \
     perl -0pi -e 's/a\.name \+ \x27 \(\x27 \+ \(a\.model_provider \|\| \x27unknown\x27\) \+ \x27:\x27 \+ \(a\.model_name \|\| \x27unknown\x27\) \+ \x27\)\x27/a.name + \x27 (\x27 + formatProviderModel(a.model_provider || \x27unknown\x27, a.model_name || \x27unknown\x27) + \x27)\x27/' /src/openfang/crates/openfang-api/static/index_body.html && \
+    grep -q 'formatProviderModel(currentAgent.model_provider, currentAgent.model_name)' /src/openfang/crates/openfang-api/static/index_body.html && \
+    grep -q 'formatProviderModel(a.model_provider ||' /src/openfang/crates/openfang-api/static/index_body.html && \
     cp /tmp/upstream-overrides/crates/openfang-api/static/js/app.js /src/openfang/crates/openfang-api/static/js/app.js && \
     cp /tmp/upstream-overrides/crates/openfang-api/static/js/pages/chat.js /src/openfang/crates/openfang-api/static/js/pages/chat.js && \
     cp /tmp/upstream-overrides/crates/openfang-api/static/js/pages/agents.js /src/openfang/crates/openfang-api/static/js/pages/agents.js && \

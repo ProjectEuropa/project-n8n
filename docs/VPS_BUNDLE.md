@@ -24,6 +24,7 @@ docker compose up -d --build
 ```env
 OPENFANG_SOURCE_REPO=https://github.com/RightNow-AI/openfang
 OPENFANG_SOURCE_REF=v0.5.6
+OPENFANG_SOURCE_COMMIT=<pinned-full-commit-sha>
 ```
 
 build は override Compose を重ねて実行します。
@@ -38,6 +39,7 @@ UI 上書きファイルは `openfang_config/upstream-overrides/` から source 
 注意:
 
 - source build は通常より重いです
+- `OPENFANG_SOURCE_COMMIT` を設定すると、source ref が想定コミットかを build 時に検証できます
 - local で回すなら `./scripts/vendor-openfang-source.sh` を先に実行した方が速いです
 - 小さい VPS では build が厳しい場合があります
 

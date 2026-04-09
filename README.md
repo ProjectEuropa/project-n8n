@@ -106,6 +106,7 @@ cp .env.example .env
 ```env
 OPENFANG_SOURCE_REPO=https://github.com/RightNow-AI/openfang
 OPENFANG_SOURCE_REF=v0.5.6
+OPENFANG_SOURCE_COMMIT=<pinned-full-commit-sha>
 ```
 
 その後に override Compose を重ねて build します。
@@ -127,6 +128,7 @@ docker compose -f compose.yml -f compose.source-build.yml -f compose.local-fast.
 
 - `Dockerfile.patched` は Rust source build なので、通常ビルドよりかなり重いです
 - `./scripts/vendor-openfang-source.sh` を先に実行すると、毎回の remote clone を避けられます
+- `OPENFANG_SOURCE_COMMIT` を設定すると、source ref が想定コミットかを build 時に検証できます
 - `compose.local-fast.yml` は local 確認専用です。debug build なので本番用には使いません
 - 小さい VPS で直接 build すると時間やメモリが厳しい可能性があります
 - デフォルト運用は引き続き [`openfang_config/Dockerfile`](openfang_config/Dockerfile#L1) のままです
