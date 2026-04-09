@@ -53,9 +53,9 @@ function renderMarkdown(text) {
     });
 
     var html = marked.parse(protected_);
-    // Restore LaTeX blocks
+    // Restore LaTeX blocks — use function callback to avoid $& / $1 special replacement patterns
     for (var i = 0; i < latexBlocks.length; i++) {
-      html = html.replace('\x00LATEX' + i + '\x00', latexBlocks[i]);
+      html = html.replace('\x00LATEX' + i + '\x00', (function(block) { return function() { return block; }; })(latexBlocks[i]));
     }
     // Add copy buttons to code blocks
     html = html.replace(/<pre><code/g, '<pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code');
@@ -390,6 +390,9 @@ document.addEventListener('alpine:init', function() {
     submitApiKey(key) {
       if (!key || !key.trim()) return;
       OpenFangAPI.setAuthToken(key.trim());
+      // NOTE: localStorage is accessible to any script on the page.
+      // If XSS is possible, this key can be stolen.
+      // Prefer httpOnly session cookies when the backend supports it.
       localStorage.setItem('openfang-api-key', key.trim());
       this.showAuthPrompt = false;
       this.refreshAgents();

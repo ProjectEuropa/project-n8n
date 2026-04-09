@@ -130,6 +130,7 @@ docker compose -f compose.yml -f compose.source-build.yml -f compose.local-fast.
 - `compose.local-fast.yml` は local 確認専用です。debug build なので本番用には使いません
 - 小さい VPS で直接 build すると時間やメモリが厳しい可能性があります
 - デフォルト運用は引き続き [`openfang_config/Dockerfile`](openfang_config/Dockerfile#L1) のままです
+- API key 認証モードでは、upstream UI の都合でキーを `localStorage` に保持します。XSS が成立すると読み取られるので、使えるなら session/httpOnly Cookie ベースの認証を優先してください
 
 ## ボリューム
 
