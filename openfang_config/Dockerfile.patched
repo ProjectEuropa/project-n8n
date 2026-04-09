@@ -45,7 +45,6 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cp /tmp/upstream-overrides/crates/openfang-api/static/js/pages/wizard.js /src/openfang/crates/openfang-api/static/js/pages/wizard.js && \
     cp /tmp/upstream-overrides/crates/openfang-api/static/js/pages/settings.js /src/openfang/crates/openfang-api/static/js/pages/settings.js && \
     cp /tmp/upstream-overrides/crates/openfang-api/static/js/pages/overview.js /src/openfang/crates/openfang-api/static/js/pages/overview.js && \
-    cp /tmp/upstream-overrides/crates/openfang-api/static/js/pages/shared.js /src/openfang/crates/openfang-api/static/js/pages/shared.js && \
     cp /tmp/upstream-overrides/crates/openfang-api/static/js/pages/runtime.js /src/openfang/crates/openfang-api/static/js/pages/runtime.js && \
     cargo build --release -p openfang-cli --bin openfang && \
     install -Dm755 target/release/openfang /out/openfang
