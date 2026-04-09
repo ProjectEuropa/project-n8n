@@ -20,13 +20,13 @@ function overviewPage() {
       this.loading = true;
       this.loadError = '';
       try {
+        await this.loadStatus();
         await Promise.all([
           this.loadHealth(),
-          this.loadStatus(),
           this.loadUsage(),
           this.loadAudit(),
           this.loadChannels(),
-          this.loadProviders(),
+          this.loadProviders(this.status),
           this.loadMcpServers(),
           this.loadSkills()
         ]);
@@ -42,13 +42,13 @@ function overviewPage() {
     // Silent background refresh (no loading spinner)
     async silentRefresh() {
       try {
+        await this.loadStatus();
         await Promise.all([
           this.loadHealth(),
-          this.loadStatus(),
           this.loadUsage(),
           this.loadAudit(),
           this.loadChannels(),
-          this.loadProviders(),
+          this.loadProviders(this.status),
           this.loadMcpServers(),
           this.loadSkills()
         ]);

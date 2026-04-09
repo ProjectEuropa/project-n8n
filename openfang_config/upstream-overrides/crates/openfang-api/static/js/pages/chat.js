@@ -389,7 +389,7 @@ function chatPage() {
             else if (self.thinkingMode === 'on') self.thinkingMode = 'stream';
             else self.thinkingMode = 'off';
           }
-           self.thinkingMode === 'stream' let modeLabel = self.thinkingMode === 'stream' ? 'enabled (streaming reasoning)' : (self.thinkingMode === 'on' ? 'enabled' : 'disabled');
+          let modeLabel = self.thinkingMode === 'stream' ? 'enabled (streaming reasoning)' : (self.thinkingMode === 'on' ? 'enabled' : 'disabled');
           self.messages.push({ id: ++msgId, role: 'system', text: 'Extended thinking **' + modeLabel + '**. ' +
             (self.thinkingMode === 'stream' ? 'Reasoning tokens will appear in a collapsible panel.' :
              self.thinkingMode === 'on' ? 'The agent will show its reasoning when supported by the model.' :
@@ -500,9 +500,8 @@ function chatPage() {
       this.connectWs(agent.id);
       // Show welcome tips on first use
       if (!localStorage.getItem('of-chat-tips-seen')) {
-        var localMsgId = 0;
         this.messages.push({
-          id: ++localMsgId,
+          id: ++msgId,
           role: 'system',
           text: '**Welcome to OpenFang Chat!**\n\n' +
             '- Type `/` to see available commands\n' +
@@ -627,7 +626,7 @@ function chatPage() {
         case 'connected': break;
 
         // Legacy thinking event (backward compat)
-        case 'thinking':
+        case 'thinking': {
           if (!this.messages.length || !this.messages[this.messages.length - 1].thinking) {
             let thinkLabel = data.level ? 'Thinking (' + data.level + ')...' : 'Processing...';
             this.messages.push({ id: ++msgId, role: 'agent', text: thinkLabel, meta: '', thinking: true, streaming: true, tools: [] });
@@ -642,9 +641,10 @@ function chatPage() {
             }
           }
           break;
+        }
 
         // New typing lifecycle
-        case 'typing':
+        case 'typing': {
           if (data.state === 'start') {
             if (!this.messages.length || !this.messages[this.messages.length - 1].thinking) {
               this.messages.push({ id: ++msgId, role: 'agent', text: 'Processing...', meta: '', thinking: true, streaming: true, tools: [] });
@@ -663,8 +663,9 @@ function chatPage() {
             this._clearTypingTimeout();
           }
           break;
+        }
 
-        case 'phase':
+        case 'phase': {
           // Show tool/phase progress so the user sees the agent is working
           let phaseIdx = this.messages.length - 1;
           let phaseMsg = phaseIdx >= 0 ? this.messages[phaseIdx] : null;
@@ -701,8 +702,9 @@ function chatPage() {
           }
           this.scrollToBottom();
           break;
+        }
 
-        case 'text_delta':
+        case 'text_delta': {
           let lastIdx = this.messages.length - 1;
           let last = lastIdx >= 0 ? this.messages[lastIdx] : null;
           if (last && last.streaming) {
@@ -742,8 +744,9 @@ function chatPage() {
           }
           this.scrollToBottom();
           break;
+        }
 
-        case 'tool_start':
+        case 'tool_start': {
           let tsIdx = this.messages.length - 1;
           let lastMsg = tsIdx >= 0 ? this.messages[tsIdx] : null;
           if (lastMsg && lastMsg.streaming) {
@@ -753,8 +756,9 @@ function chatPage() {
           }
           this.scrollToBottom();
           break;
+        }
 
-        case 'tool_end':
+        case 'tool_end': {
           // Tool call parsed by LLM — update tool card with input params
           let teIdx = this.messages.length - 1;
           let lastMsg2 = teIdx >= 0 ? this.messages[teIdx] : null;
@@ -768,8 +772,9 @@ function chatPage() {
             this.messages.splice(teIdx, 1, lastMsg2);
           }
           break;
+        }
 
-        case 'tool_result':
+        case 'tool_result': {
           // Tool execution completed — update tool card with result
           let trIdx = this.messages.length - 1;
           let lastMsg3 = trIdx >= 0 ? this.messages[trIdx] : null;
@@ -805,8 +810,9 @@ function chatPage() {
           }
           this.scrollToBottom();
           break;
+        }
 
-        case 'response':
+        case 'response': {
           this._clearTypingTimeout();
           // Update context pressure from response
           if (data.context_pressure) {
@@ -852,8 +858,9 @@ function chatPage() {
             self3._processQueue();
           });
           break;
+        }
 
-        case 'silent_complete':
+        case 'silent_complete': {
           // Agent intentionally chose not to reply (NO_REPLY)
           this._clearTypingTimeout();
           this.messages = this.messages.filter(function(m) { return !m.thinking && !m.streaming; });
@@ -863,8 +870,9 @@ function chatPage() {
           let selfSilent = this;
           this.$nextTick(function() { selfSilent._processQueue(); });
           break;
+        }
 
-        case 'error':
+        case 'error': {
           this._clearTypingTimeout();
           this.messages = this.messages.filter(function(m) { return !m.thinking && !m.streaming; });
           this.messages.push({ id: ++msgId, role: 'system', text: 'Error: ' + data.content, meta: '', tools: [], ts: Date.now() });
@@ -877,6 +885,7 @@ function chatPage() {
             self2._processQueue();
           });
           break;
+        }
 
         case 'agents_updated':
           if (data.agents) {
@@ -894,17 +903,20 @@ function chatPage() {
           this.scrollToBottom();
           break;
 
-        case 'canvas':
+        case 'canvas': {
           // Agent presented an interactive canvas — render it in an iframe sandbox
+          let canvasTitle = escapeHtml(data.title || 'Canvas');
+          let canvasId = escapeHtml((data.canvas_id || '').substring(0, 8));
           let canvasHtml = '<div class="canvas-panel" style="border:1px solid var(--border);border-radius:8px;margin:8px 0;overflow:hidden;">';
           canvasHtml += '<div style="padding:6px 12px;background:var(--surface);border-bottom:1px solid var(--border);font-size:0.85em;display:flex;justify-content:space-between;align-items:center;">';
-          canvasHtml += '<span>' + (data.title || 'Canvas') + '</span>';
-          canvasHtml += '<span style="opacity:0.5;font-size:0.8em;">' + (data.canvas_id || '').substring(0, 8) + '</span></div>';
+          canvasHtml += '<span>' + canvasTitle + '</span>';
+          canvasHtml += '<span style="opacity:0.5;font-size:0.8em;">' + canvasId + '</span></div>';
           canvasHtml += '<iframe sandbox="allow-scripts" srcdoc="' + (data.html || '').replace(/"/g, '&quot;') + '" ';
           canvasHtml += 'style="width:100%;min-height:300px;border:none;background:#fff;" loading="lazy"></iframe></div>';
           this.messages.push({ id: ++msgId, role: 'agent', text: canvasHtml, meta: 'canvas', isHtml: true, tools: [] });
           this.scrollToBottom();
           break;
+        }
 
         case 'pong': break;
       }

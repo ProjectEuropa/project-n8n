@@ -21,6 +21,37 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+function sanitizeRenderedHtml(html) {
+  if (!html) return '';
+  if (typeof DOMPurify !== 'undefined' && DOMPurify && typeof DOMPurify.sanitize === 'function') {
+    return DOMPurify.sanitize(html);
+  }
+  if (typeof document === 'undefined') return html;
+
+  var template = document.createElement('template');
+  template.innerHTML = html;
+
+  Array.prototype.slice.call(template.content.querySelectorAll('script,iframe,object,embed,link[rel="import"],meta[http-equiv]')).forEach(function(node) {
+    node.remove();
+  });
+
+  Array.prototype.slice.call(template.content.querySelectorAll('*')).forEach(function(node) {
+    Array.prototype.slice.call(node.attributes || []).forEach(function(attr) {
+      var name = (attr.name || '').toLowerCase();
+      var value = attr.value || '';
+      if (name.indexOf('on') === 0) {
+        node.removeAttribute(attr.name);
+        return;
+      }
+      if ((name === 'href' || name === 'src' || name === 'xlink:href') && /^\s*javascript:/i.test(value)) {
+        node.removeAttribute(attr.name);
+      }
+    });
+  });
+
+  return template.innerHTML;
+}
+
 function renderMarkdown(text) {
   if (!text) return '';
   if (typeof marked !== 'undefined') {
@@ -57,6 +88,7 @@ function renderMarkdown(text) {
     for (var i = 0; i < latexBlocks.length; i++) {
       html = html.replace('\x00LATEX' + i + '\x00', (function(block) { return function() { return block; }; })(latexBlocks[i]));
     }
+    html = sanitizeRenderedHtml(html);
     // Add copy buttons to code blocks
     html = html.replace(/<pre><code/g, '<pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code');
     // Open external links in new tab
@@ -447,7 +479,7 @@ function app() {
 
     get agents() { return Alpine.store('app').agents; },
 
-    init() {
+    async init() {
       var self = this;
 
       // Listen for OS theme changes (only matters when mode is 'system')
@@ -513,7 +545,7 @@ function app() {
       });
 
       // Initial data load
-      this.pollStatus();
+      await this.pollStatus();
       Alpine.store('app').refreshApprovals();
       Alpine.store('app').checkOnboarding();
       Alpine.store('app').checkAuth();

@@ -25,7 +25,7 @@ function settingsPage() {
     providerUrlSaving: {},
     providerTesting: {},
     providerTestResults: {},
-    copilotOAuth: { polling: false, userCode: '', verificationUri: '', pollId: '', interval: 5 },
+    copilotOAuth: { polling: false, userCode: '', verificationUri: '', pollId: '', interval: 5, timeoutId: null },
     customProviderName: '',
     customProviderUrl: '',
     customProviderKey: '',
@@ -429,8 +429,17 @@ function settingsPage() {
       }
     },
 
+    resetCopilotOAuth() {
+      if (this.copilotOAuth.timeoutId) {
+        clearTimeout(this.copilotOAuth.timeoutId);
+      }
+      this.copilotOAuth = { polling: false, userCode: '', verificationUri: '', pollId: '', interval: 5, timeoutId: null };
+    },
+
     async startCopilotOAuth() {
+      if (this.copilotOAuth.polling) return;
       this.copilotOAuth.polling = true;
+      this.copilotOAuth.timeoutId = null;
       this.copilotOAuth.userCode = '';
       try {
         var resp = await OpenFangAPI.post('/api/providers/github-copilot/oauth/start', {});
@@ -442,19 +451,23 @@ function settingsPage() {
         this.pollCopilotOAuth();
       } catch(e) {
         OpenFangToast.error('Failed to start Copilot login: ' + e.message);
-        this.copilotOAuth.polling = false;
+        this.resetCopilotOAuth();
       }
     },
 
     pollCopilotOAuth() {
       var self = this;
-      setTimeout(async function() {
-        if (!self.copilotOAuth.pollId) return;
+      self.copilotOAuth.timeoutId = setTimeout(async function() {
+        self.copilotOAuth.timeoutId = null;
+        if (!self.copilotOAuth.pollId) {
+          self.resetCopilotOAuth();
+          return;
+        }
         try {
           var resp = await OpenFangAPI.get('/api/providers/github-copilot/oauth/poll/' + self.copilotOAuth.pollId);
           if (resp.status === 'complete') {
             OpenFangToast.success('GitHub Copilot authenticated successfully!');
-            self.copilotOAuth = { polling: false, userCode: '', verificationUri: '', pollId: '', interval: 5 };
+            self.resetCopilotOAuth();
             await self.loadProviders();
             await self.loadModels();
           } else if (resp.status === 'pending') {
@@ -462,17 +475,17 @@ function settingsPage() {
             self.pollCopilotOAuth();
           } else if (resp.status === 'expired') {
             OpenFangToast.error('Device code expired. Please try again.');
-            self.copilotOAuth = { polling: false, userCode: '', verificationUri: '', pollId: '', interval: 5 };
+            self.resetCopilotOAuth();
           } else if (resp.status === 'denied') {
             OpenFangToast.error('Access denied by user.');
-            self.copilotOAuth = { polling: false, userCode: '', verificationUri: '', pollId: '', interval: 5 };
+            self.resetCopilotOAuth();
           } else {
             OpenFangToast.error('OAuth error: ' + (resp.error || resp.status));
-            self.copilotOAuth = { polling: false, userCode: '', verificationUri: '', pollId: '', interval: 5 };
+            self.resetCopilotOAuth();
           }
         } catch(e) {
           OpenFangToast.error('Poll error: ' + e.message);
-          self.copilotOAuth = { polling: false, userCode: '', verificationUri: '', pollId: '', interval: 5 };
+          self.resetCopilotOAuth();
         }
       }, self.copilotOAuth.interval * 1000);
     },
