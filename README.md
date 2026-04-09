@@ -8,15 +8,18 @@ OpenFang を Docker Compose + Caddy で VPS に載せるためのリポジトリ
 ```text
 .
 ├── compose.yml                  # 本番用 Compose
+├── compose.patched.yml          # patched OpenFang を source build する上書き Compose
 ├── .env.example                 # VPS 用の環境変数テンプレート
 ├── caddy_config/
 │   └── Caddyfile
 ├── openfang_config/
 │   ├── Dockerfile
+│   ├── Dockerfile.patched
 │   ├── config.toml
 │   ├── entrypoint.sh
 │   ├── fake-gcloud.sh
-│   └── gcp-token.py
+│   ├── gcp-token.py
+│   └── upstream-overrides/
 ├── scripts/
 │   ├── setup-vps.sh             # VPS 初期セットアップ
 │   ├── backup.sh                # openfang_data / workspace / caddy_data のバックアップ
@@ -37,6 +40,12 @@ OpenFang を Docker Compose + Caddy で VPS に載せるためのリポジトリ
 - `caddy_config/Caddyfile`
 - `openfang_config/*`
 - `OPENFANG_SHA256_AMD64` / `OPENFANG_SHA256_ARM64`
+
+patched UI build が必要なときだけ:
+
+- `compose.patched.yml`
+- `OPENFANG_SOURCE_REPO`
+- `OPENFANG_SOURCE_REF`
 
 ## 2. VPS 用バンドルを生成
 
@@ -79,6 +88,49 @@ docker compose up -d --build
   - ホストには直接公開しない
 - `watchtower`
   - コンテナ自動更新
+
+## OpenFang UI Patch
+
+OpenFang upstream の `/api/providers` に `vertex-ai` が出ないため、UI の provider セレクトには既定 provider が載らないことがあります。
+
+この repo では通常どおり GitHub Releases のバイナリを使いながら、必要なときだけ [`openfang_config/Dockerfile.patched`](/Users/masato/Desktop/project-n8n/openfang_config/Dockerfile.patched#L1) で source build に切り替えられるようにしています。UI 上書きファイルは [`openfang_config/upstream-overrides/crates/openfang-api/static/js/app.js`](/Users/masato/Desktop/project-n8n/openfang_config/upstream-overrides/crates/openfang-api/static/js/app.js#L1) などに置いてあります。
+
+使い方:
+
+```bash
+cp .env.example .env
+```
+
+`.env` で以下を設定します。
+
+```env
+OPENFANG_SOURCE_REPO=https://github.com/RightNow-AI/openfang
+OPENFANG_SOURCE_REF=v0.5.6
+```
+
+その後に override Compose を重ねて build します。
+
+```bash
+./scripts/vendor-openfang-source.sh
+docker compose -f compose.yml -f compose.patched.yml up -d --build openfang
+```
+
+ローカルで UI だけ素早く確認したいときは、debug build 用 override を使えます。
+
+```bash
+./scripts/vendor-openfang-source.sh
+docker compose -f compose.yml -f compose.patched.yml -f compose.local-fast.yml -f compose.local-ui.yml up -d --build openfang
+```
+
+`openfang_config/upstream-src/` に vendored source がある場合、`Dockerfile.patched` は `git clone` をスキップしてそちらを使います。ローカルで UI を詰めるときはこの経路の方が速いです。
+
+注意:
+
+- `Dockerfile.patched` は Rust source build なので、通常ビルドよりかなり重いです
+- `./scripts/vendor-openfang-source.sh` を先に実行すると、毎回の remote clone を避けられます
+- `compose.local-fast.yml` は local 確認専用です。debug build なので本番用には使いません
+- 小さい VPS で直接 build すると時間やメモリが厳しい可能性があります
+- デフォルト運用は引き続き [`openfang_config/Dockerfile`](/Users/masato/Desktop/project-n8n/openfang_config/Dockerfile#L1) のままです
 
 ## ボリューム
 

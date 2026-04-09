@@ -17,3 +17,5 @@ workspace/*
 # OpenFang設定（APIキー等を含む可能性）
 # config.toml はコミットするが、secrets は除外
 openfang_config/secrets.toml
+openfang_config/upstream-src/
+!openfang_config/upstream-src/.gitkeep
