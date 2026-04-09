@@ -12,7 +12,8 @@ cleanup() {
 }
 trap cleanup EXIT
 
-git clone --depth 1 --branch "${SOURCE_REF}" "${SOURCE_REPO}" "${TMP_DIR}/openfang"
+git clone "${SOURCE_REPO}" "${TMP_DIR}/openfang"
+git -C "${TMP_DIR}/openfang" checkout "${SOURCE_REF}"
 rm -rf "${TMP_DIR}/openfang/.git"
 rm -rf "${DEST_DIR}"
 mkdir -p "${DEST_DIR}"

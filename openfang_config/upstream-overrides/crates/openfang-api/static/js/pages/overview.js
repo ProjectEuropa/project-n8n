@@ -117,13 +117,10 @@ function overviewPage() {
       } catch(e) { this.channels = []; }
     },
 
-    async loadProviders() {
+    async loadProviders(statusResult) {
       try {
-        var results = await Promise.all([
-          OpenFangAPI.get('/api/status').catch(function() { return {}; }),
-          OpenFangAPI.get('/api/providers').catch(function() { return { providers: [] }; })
-        ]);
-        this.providers = mergeImplicitDefaultProvider(results[1].providers || [], results[0]);
+        var data = await OpenFangAPI.get('/api/providers').catch(function() { return { providers: [] }; });
+        this.providers = mergeImplicitDefaultProvider(data.providers || [], statusResult || this.status);
       } catch(e) { this.providers = []; }
     },
 
@@ -194,8 +191,9 @@ function overviewPage() {
     },
 
     get setupProgress() {
+      var len = this.setupChecklist.length || 1;
       var done = this.setupChecklist.filter(function(item) { return item.done; }).length;
-      return (done / 5) * 100;
+      return (done / len) * 100;
     },
 
     get setupDoneCount() {

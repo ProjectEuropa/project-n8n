@@ -1,17 +1,12 @@
 // OpenFang Agents Page — Multi-step spawn wizard, detail view with tabs, file editor, personality presets
 'use strict';
 
-/** Escape a string for use inside TOML triple-quoted strings ("""\n...\n""").
- *  Backslashes are escaped, and runs of 3+ consecutive double-quotes are
- *  broken up so the TOML parser never sees an unintended closing delimiter.
- */
+/** Escape a string for use inside TOML triple-quoted strings ("""\n...\n"""). */
 function tomlMultilineEscape(s) {
   return s.replace(/\\/g, '\\\\').replace(/"""/g, '""\\"');
 }
 
-/** Escape a string for use inside a TOML basic (single-line) string ("...").
- *  Backslashes, double-quotes, and common control chars are escaped.
- */
+/** Escape a string for use inside a TOML basic (single-line) string ("..."). */
 function tomlBasicEscape(s) {
   return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t');
 }
@@ -96,11 +91,6 @@ function agentsPage() {
 
     builtinTemplates: [],
     
-    // Load templates from API
-    async init() {
-      await this.loadTemplates();
-    },
-
     // ── Profile Descriptions ──
     profileDescriptions: {
       minimal: { label: 'Minimal', desc: 'Read-only file access' },
@@ -175,6 +165,7 @@ function agentsPage() {
     get filteredCustom() {
       var self = this;
       return this.tplTemplates.filter(function(t) {
+        if (self.selectedCategory !== 'All' && t.category !== self.selectedCategory) return false;
         if (self.searchQuery) {
           var q = self.searchQuery.toLowerCase();
           if ((t.name || '').toLowerCase().indexOf(q) === -1 &&

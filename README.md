@@ -93,7 +93,7 @@ docker compose up -d --build
 
 OpenFang upstream の `/api/providers` に `vertex-ai` が出ないため、UI の provider セレクトには既定 provider が載らないことがあります。
 
-この repo では通常どおり GitHub Releases のバイナリを使いながら、必要なときだけ [`openfang_config/Dockerfile.patched`](/Users/masato/Desktop/project-n8n/openfang_config/Dockerfile.patched#L1) で source build に切り替えられるようにしています。UI 上書きファイルは [`openfang_config/upstream-overrides/crates/openfang-api/static/js/app.js`](/Users/masato/Desktop/project-n8n/openfang_config/upstream-overrides/crates/openfang-api/static/js/app.js#L1) などに置いてあります。
+この repo では通常どおり GitHub Releases のバイナリを使いながら、必要なときだけ [`openfang_config/Dockerfile.patched`](openfang_config/Dockerfile.patched#L1) で source build に切り替えられるようにしています。UI 上書きファイルは [`openfang_config/upstream-overrides/crates/openfang-api/static/js/app.js`](openfang_config/upstream-overrides/crates/openfang-api/static/js/app.js#L1) などに置いてあります。
 
 使い方:
 
@@ -129,7 +129,7 @@ docker compose -f compose.yml -f compose.source-build.yml -f compose.local-fast.
 - `./scripts/vendor-openfang-source.sh` を先に実行すると、毎回の remote clone を避けられます
 - `compose.local-fast.yml` は local 確認専用です。debug build なので本番用には使いません
 - 小さい VPS で直接 build すると時間やメモリが厳しい可能性があります
-- デフォルト運用は引き続き [`openfang_config/Dockerfile`](/Users/masato/Desktop/project-n8n/openfang_config/Dockerfile#L1) のままです
+- デフォルト運用は引き続き [`openfang_config/Dockerfile`](openfang_config/Dockerfile#L1) のままです
 
 ## ボリューム
 

@@ -389,7 +389,7 @@ function chatPage() {
             else if (self.thinkingMode === 'on') self.thinkingMode = 'stream';
             else self.thinkingMode = 'off';
           }
-          var modeLabel = self.thinkingMode === 'stream' ? 'enabled (streaming reasoning)' : (self.thinkingMode === 'on' ? 'enabled' : 'disabled');
+           self.thinkingMode === 'stream' let modeLabel = self.thinkingMode === 'stream' ? 'enabled (streaming reasoning)' : (self.thinkingMode === 'on' ? 'enabled' : 'disabled');
           self.messages.push({ id: ++msgId, role: 'system', text: 'Extended thinking **' + modeLabel + '**. ' +
             (self.thinkingMode === 'stream' ? 'Reasoning tokens will appear in a collapsible panel.' :
              self.thinkingMode === 'on' ? 'The agent will show its reasoning when supported by the model.' :
@@ -629,13 +629,13 @@ function chatPage() {
         // Legacy thinking event (backward compat)
         case 'thinking':
           if (!this.messages.length || !this.messages[this.messages.length - 1].thinking) {
-            var thinkLabel = data.level ? 'Thinking (' + data.level + ')...' : 'Processing...';
+            let thinkLabel = data.level ? 'Thinking (' + data.level + ')...' : 'Processing...';
             this.messages.push({ id: ++msgId, role: 'agent', text: thinkLabel, meta: '', thinking: true, streaming: true, tools: [] });
             this.scrollToBottom();
             this._resetTypingTimeout();
           } else if (data.level) {
-            var thinkIdx = this.messages.length - 1;
-            var lastThink = thinkIdx >= 0 ? this.messages[thinkIdx] : null;
+            let thinkIdx = this.messages.length - 1;
+            let lastThink = thinkIdx >= 0 ? this.messages[thinkIdx] : null;
             if (lastThink && lastThink.thinking) {
               lastThink.text = 'Thinking (' + data.level + ')...';
               this.messages.splice(thinkIdx, 1, lastThink);
@@ -652,8 +652,8 @@ function chatPage() {
             }
             this._resetTypingTimeout();
           } else if (data.state === 'tool') {
-            var toolTypIdx = this.messages.length - 1;
-            var typingMsg = toolTypIdx >= 0 ? this.messages[toolTypIdx] : null;
+            let toolTypIdx = this.messages.length - 1;
+            let typingMsg = toolTypIdx >= 0 ? this.messages[toolTypIdx] : null;
             if (typingMsg && (typingMsg.thinking || typingMsg.streaming)) {
               typingMsg.text = 'Using ' + (data.tool || 'tool') + '...';
               this.messages.splice(toolTypIdx, 1, typingMsg);
@@ -666,8 +666,8 @@ function chatPage() {
 
         case 'phase':
           // Show tool/phase progress so the user sees the agent is working
-          var phaseIdx = this.messages.length - 1;
-          var phaseMsg = phaseIdx >= 0 ? this.messages[phaseIdx] : null;
+          let phaseIdx = this.messages.length - 1;
+          let phaseMsg = phaseIdx >= 0 ? this.messages[phaseIdx] : null;
           if (phaseMsg && (phaseMsg.thinking || phaseMsg.streaming)) {
             // Skip phases that have no user-meaningful display text — "streaming"
             // and "done" are lifecycle signals, not status to show in the chat bubble.
@@ -676,7 +676,7 @@ function chatPage() {
             }
             // Context warning: show prominently as a separate system message
             if (data.phase === 'context_warning') {
-              var cwDetail = data.detail || 'Context limit reached.';
+              let cwDetail = data.detail || 'Context limit reached.';
               this.messages.push({ id: ++msgId, role: 'system', text: cwDetail, meta: '', tools: [] });
             } else if (data.phase === 'thinking' && this.thinkingMode === 'stream') {
               // Stream reasoning tokens to a collapsible panel
@@ -687,7 +687,7 @@ function chatPage() {
             } else if (phaseMsg.thinking) {
               // Only update text on messages still in thinking state (not yet
               // receiving streamed content) to avoid overwriting accumulated text.
-              var phaseDetail;
+              let phaseDetail;
               if (data.phase === 'tool_use') {
                 phaseDetail = 'Using ' + (data.detail || 'tool') + '...';
               } else if (data.phase === 'thinking') {
@@ -703,24 +703,24 @@ function chatPage() {
           break;
 
         case 'text_delta':
-          var lastIdx = this.messages.length - 1;
-          var last = lastIdx >= 0 ? this.messages[lastIdx] : null;
+          let lastIdx = this.messages.length - 1;
+          let last = lastIdx >= 0 ? this.messages[lastIdx] : null;
           if (last && last.streaming) {
             if (last.thinking) { last.text = ''; last.thinking = false; }
             // If we already detected a text-based tool call, skip further text
             if (last._toolTextDetected) break;
             last.text += data.content;
             // Detect function-call patterns streamed as text and convert to tool cards
-            var fcIdx = last.text.search(/\w+<\/function[=,>]/);
+            let fcIdx = last.text.search(/\w+<\/function[=,>]/);
             if (fcIdx === -1) fcIdx = last.text.search(/<function=\w+>/);
             if (fcIdx !== -1) {
-              var fcPart = last.text.substring(fcIdx);
-              var toolMatch = fcPart.match(/^(\w+)<\/function/) || fcPart.match(/^<function=(\w+)>/);
+              let fcPart = last.text.substring(fcIdx);
+              let toolMatch = fcPart.match(/^(\w+)<\/function/) || fcPart.match(/^<function=(\w+)>/);
               last.text = last.text.substring(0, fcIdx).trim();
               last._toolTextDetected = true;
               if (toolMatch) {
                 if (!last.tools) last.tools = [];
-                var inputMatch = fcPart.match(/[=,>]\s*(\{[\s\S]*)/);
+                let inputMatch = fcPart.match(/[=,>]\s*(\{[\s\S]*)/);
                 last.tools.push({
                   id: toolMatch[1] + '-txt-' + Date.now(),
                   name: toolMatch[1],
@@ -744,8 +744,8 @@ function chatPage() {
           break;
 
         case 'tool_start':
-          var tsIdx = this.messages.length - 1;
-          var lastMsg = tsIdx >= 0 ? this.messages[tsIdx] : null;
+          let tsIdx = this.messages.length - 1;
+          let lastMsg = tsIdx >= 0 ? this.messages[tsIdx] : null;
           if (lastMsg && lastMsg.streaming) {
             if (!lastMsg.tools) lastMsg.tools = [];
             lastMsg.tools.push({ id: data.tool + '-' + Date.now(), name: data.tool, running: true, expanded: true, input: '', result: '', is_error: false });
@@ -756,8 +756,8 @@ function chatPage() {
 
         case 'tool_end':
           // Tool call parsed by LLM — update tool card with input params
-          var teIdx = this.messages.length - 1;
-          var lastMsg2 = teIdx >= 0 ? this.messages[teIdx] : null;
+          let teIdx = this.messages.length - 1;
+          let lastMsg2 = teIdx >= 0 ? this.messages[teIdx] : null;
           if (lastMsg2 && lastMsg2.tools) {
             for (var ti = lastMsg2.tools.length - 1; ti >= 0; ti--) {
               if (lastMsg2.tools[ti].name === data.tool && lastMsg2.tools[ti].running) {
@@ -771,8 +771,8 @@ function chatPage() {
 
         case 'tool_result':
           // Tool execution completed — update tool card with result
-          var trIdx = this.messages.length - 1;
-          var lastMsg3 = trIdx >= 0 ? this.messages[trIdx] : null;
+          let trIdx = this.messages.length - 1;
+          let lastMsg3 = trIdx >= 0 ? this.messages[trIdx] : null;
           if (lastMsg3 && lastMsg3.tools) {
             for (var ri = lastMsg3.tools.length - 1; ri >= 0; ri--) {
               if (lastMsg3.tools[ri].name === data.tool && lastMsg3.tools[ri].running) {
@@ -782,7 +782,7 @@ function chatPage() {
                 // Extract image URLs from image_generate or browser_screenshot results
                 if ((data.tool === 'image_generate' || data.tool === 'browser_screenshot') && !data.is_error) {
                   try {
-                    var parsed = JSON.parse(data.result);
+                    let parsed = JSON.parse(data.result);
                     if (parsed.image_urls && parsed.image_urls.length) {
                       lastMsg3.tools[ri]._imageUrls = parsed.image_urls;
                     }
@@ -791,7 +791,7 @@ function chatPage() {
                 // Extract audio file path from text_to_speech results
                 if (data.tool === 'text_to_speech' && !data.is_error) {
                   try {
-                    var ttsResult = JSON.parse(data.result);
+                    let ttsResult = JSON.parse(data.result);
                     if (ttsResult.saved_to) {
                       lastMsg3.tools[ri]._audioFile = ttsResult.saved_to;
                       lastMsg3.tools[ri]._audioDuration = ttsResult.duration_estimate_ms;
@@ -813,8 +813,8 @@ function chatPage() {
             this.contextPressure = data.context_pressure;
           }
           // Collect streamed text before removing streaming messages
-          var streamedText = '';
-          var streamedTools = [];
+          let streamedText = '';
+          let streamedTools = [];
           this.messages.forEach(function(m) {
             if (m.streaming && !m.thinking && m.role === 'agent') {
               streamedText += m.text || '';
@@ -830,12 +830,12 @@ function chatPage() {
             }
           });
           this.messages = this.messages.filter(function(m) { return !m.thinking && !m.streaming; });
-          var meta = (data.input_tokens || 0) + ' in / ' + (data.output_tokens || 0) + ' out';
+          let meta = (data.input_tokens || 0) + ' in / ' + (data.output_tokens || 0) + ' out';
           if (data.cost_usd != null) meta += ' | $' + data.cost_usd.toFixed(4);
           if (data.iterations) meta += ' | ' + data.iterations + ' iter';
           if (data.fallback_model) meta += ' | fallback: ' + data.fallback_model;
           // Use server response if non-empty, otherwise preserve accumulated streamed text
-          var finalText = (data.content && data.content.trim()) ? data.content : streamedText;
+          let finalText = (data.content && data.content.trim()) ? data.content : streamedText;
           // Strip raw function-call JSON that some models leak as text
           finalText = this.sanitizeToolText(finalText);
           // If text is empty but tools ran, show a summary
@@ -846,7 +846,7 @@ function chatPage() {
           this.sending = false;
           this.tokenCount = 0;
           this.scrollToBottom();
-          var self3 = this;
+          let self3 = this;
           this.$nextTick(function() {
             var el = document.getElementById('msg-input'); if (el) el.focus();
             self3._processQueue();
@@ -860,7 +860,7 @@ function chatPage() {
           this.sending = false;
           this.tokenCount = 0;
           // No message bubble added — the agent was silent
-          var selfSilent = this;
+          let selfSilent = this;
           this.$nextTick(function() { selfSilent._processQueue(); });
           break;
 
@@ -871,7 +871,7 @@ function chatPage() {
           this.sending = false;
           this.tokenCount = 0;
           this.scrollToBottom();
-          var self2 = this;
+          let self2 = this;
           this.$nextTick(function() {
             var el = document.getElementById('msg-input'); if (el) el.focus();
             self2._processQueue();
@@ -896,7 +896,7 @@ function chatPage() {
 
         case 'canvas':
           // Agent presented an interactive canvas — render it in an iframe sandbox
-          var canvasHtml = '<div class="canvas-panel" style="border:1px solid var(--border);border-radius:8px;margin:8px 0;overflow:hidden;">';
+          let canvasHtml = '<div class="canvas-panel" style="border:1px solid var(--border);border-radius:8px;margin:8px 0;overflow:hidden;">';
           canvasHtml += '<div style="padding:6px 12px;background:var(--surface);border-bottom:1px solid var(--border);font-size:0.85em;display:flex;justify-content:space-between;align-items:center;">';
           canvasHtml += '<span>' + (data.title || 'Canvas') + '</span>';
           canvasHtml += '<span style="opacity:0.5;font-size:0.8em;">' + (data.canvas_id || '').substring(0, 8) + '</span></div>';
@@ -983,7 +983,7 @@ function chatPage() {
       }
 
       // Build final message text
-      var finalText = text;
+      let finalText = text;
       if (fileRefs.length) {
         finalText = (text ? text + '\n' : '') + fileRefs.join('\n');
       }

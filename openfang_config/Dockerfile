@@ -34,8 +34,15 @@ RUN case "$TARGETARCH" in \
     chmod +x /usr/local/bin/openfang && \
     rm -rf /tmp/openfang.tar.gz /tmp/of
 
+RUN groupadd -r -g 1000 openfang && useradd -m -r -u 1000 -g openfang openfang
+
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN chmod +x /entrypoint.sh \
+    && mkdir -p /data \
+    && chown -R openfang:openfang /usr/local/bin/openfang /entrypoint.sh /usr/local/bin/gcp-token.py /usr/local/bin/gcloud /data
+
+USER openfang
+ENV HOME=/home/openfang
 
 EXPOSE 50051
 VOLUME /data

@@ -24,6 +24,8 @@ cp "${APP_DIR}/docs/VPS_BUNDLE.md" "${BUNDLE_DIR}/README.md"
 find "${BUNDLE_DIR}/scripts" -type f -name '*.sh' -exec chmod +x {} +
 touch "${BUNDLE_DIR}/credentials/.gitkeep"
 rm -rf "${BUNDLE_DIR}/openfang_config/upstream-src"
+mkdir -p "${BUNDLE_DIR}/openfang_config/upstream-src"
+touch "${BUNDLE_DIR}/openfang_config/upstream-src/.gitkeep"
 rm -f "${BUNDLE_DIR}/compose.local-fast.yml" "${BUNDLE_DIR}/compose.local-ui.yml"
 
 echo "完了: ${BUNDLE_DIR}"

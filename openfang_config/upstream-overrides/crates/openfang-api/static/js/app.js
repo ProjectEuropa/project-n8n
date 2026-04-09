@@ -369,7 +369,14 @@ document.addEventListener('alpine:init', function() {
         await OpenFangAPI.get('/api/tools');
         this.showAuthPrompt = false;
       } catch(e) {
-        if (e.message && (e.message.indexOf('Not authorized') >= 0 || e.message.indexOf('401') >= 0 || e.message.indexOf('Missing Authorization') >= 0 || e.message.indexOf('Unauthorized') >= 0)) {
+        var isAuthError = false;
+        var status = e.status || (e.response && e.response.status) || e.code;
+        if (status === 401 || status === 403) {
+          isAuthError = true;
+        } else if (e.message && (e.message.toLowerCase().indexOf('not authorized') >= 0 || e.message.indexOf('401') >= 0 || e.message.toLowerCase().indexOf('missing authorization') >= 0 || e.message.toLowerCase().indexOf('unauthorized') >= 0)) {
+          isAuthError = true;
+        }
+        if (isAuthError) {
           var saved = localStorage.getItem('openfang-api-key');
           if (saved) {
             OpenFangAPI.setAuthToken('');

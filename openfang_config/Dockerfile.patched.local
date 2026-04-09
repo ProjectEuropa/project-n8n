@@ -38,6 +38,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cp /tmp/upstream-overrides/crates/openfang-api/static/js/pages/wizard.js /src/openfang/crates/openfang-api/static/js/pages/wizard.js && \
     cp /tmp/upstream-overrides/crates/openfang-api/static/js/pages/settings.js /src/openfang/crates/openfang-api/static/js/pages/settings.js && \
     cp /tmp/upstream-overrides/crates/openfang-api/static/js/pages/overview.js /src/openfang/crates/openfang-api/static/js/pages/overview.js && \
+    cp /tmp/upstream-overrides/crates/openfang-api/static/js/pages/shared.js /src/openfang/crates/openfang-api/static/js/pages/shared.js && \
     cp /tmp/upstream-overrides/crates/openfang-api/static/js/pages/runtime.js /src/openfang/crates/openfang-api/static/js/pages/runtime.js && \
     cargo build -p openfang-cli --bin openfang && \
     install -Dm755 target/debug/openfang /out/openfang
@@ -56,10 +57,17 @@ COPY gcp-token.py /usr/local/bin/gcp-token.py
 COPY fake-gcloud.sh /usr/local/bin/gcloud
 RUN chmod +x /usr/local/bin/gcp-token.py /usr/local/bin/gcloud
 
+RUN groupadd -r -g 1000 openfang && useradd -m -r -u 1000 -g openfang openfang
+
 COPY --from=builder /out/openfang /usr/local/bin/openfang
 
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN chmod +x /entrypoint.sh \
+    && mkdir -p /data \
+    && chown -R openfang:openfang /usr/local/bin/openfang /entrypoint.sh /usr/local/bin/gcp-token.py /usr/local/bin/gcloud /data
+
+USER openfang
+ENV HOME=/home/openfang
 
 EXPOSE 50051
 VOLUME /data

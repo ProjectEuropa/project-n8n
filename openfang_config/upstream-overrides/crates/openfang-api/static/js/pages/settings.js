@@ -518,7 +518,7 @@ function settingsPage() {
     },
 
     async addCustomProvider() {
-      var name = this.customProviderName.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+      var name = this.customProviderName.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
       if (!name) { OpenFangToast.error('Please enter a provider name'); return; }
       var url = this.customProviderUrl.trim();
       if (!url) { OpenFangToast.error('Please enter a base URL'); return; }
@@ -598,9 +598,10 @@ function settingsPage() {
       switch (feature.valueKey) {
         case 'audit_trail':
           return (val.enabled ? 'Active' : 'Disabled') + ' | ' + (val.algorithm || 'SHA-256') + ' | ' + (val.entry_count || 0) + ' entries logged';
-        case 'taint_tracking':
+        case 'taint_tracking': {
           var labels = val.tracked_labels || [];
           return (val.enabled ? 'Active' : 'Disabled') + ' | Tracking: ' + labels.join(', ');
+        }
         case 'manifest_signing':
           return 'Algorithm: ' + (val.algorithm || 'Ed25519') + ' | ' + (val.available ? 'Available' : 'Not available');
         default:
