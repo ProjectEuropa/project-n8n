@@ -13,6 +13,7 @@ mkdir -p "$BUNDLE_DIR"
 mkdir -p "${BUNDLE_DIR}/credentials"
 
 cp "${APP_DIR}/compose.yml" "${BUNDLE_DIR}/compose.yml"
+cp "${APP_DIR}/compose.source-build.yml" "${BUNDLE_DIR}/compose.source-build.yml"
 cp "${APP_DIR}/.env.example" "${BUNDLE_DIR}/.env.example"
 cp -R "${APP_DIR}/caddy_config" "${BUNDLE_DIR}/caddy_config"
 cp -R "${APP_DIR}/openfang_config" "${BUNDLE_DIR}/openfang_config"
@@ -22,6 +23,10 @@ cp "${APP_DIR}/docs/VPS_BUNDLE.md" "${BUNDLE_DIR}/README.md"
 
 find "${BUNDLE_DIR}/scripts" -type f -name '*.sh' -exec chmod +x {} +
 touch "${BUNDLE_DIR}/credentials/.gitkeep"
+rm -rf "${BUNDLE_DIR}/openfang_config/upstream-src"
+mkdir -p "${BUNDLE_DIR}/openfang_config/upstream-src"
+touch "${BUNDLE_DIR}/openfang_config/upstream-src/.gitkeep"
+rm -f "${BUNDLE_DIR}/compose.local-fast.yml" "${BUNDLE_DIR}/compose.local-ui.yml"
 
 echo "完了: ${BUNDLE_DIR}"
 echo "転送例:"

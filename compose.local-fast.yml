@@ -1,0 +1,4 @@
+services:
+  openfang:
+    build:
+      dockerfile: Dockerfile.patched.local

@@ -1,0 +1,4 @@
+.git
+upstream-src/.git
+upstream-src/target
+upstream-src/.cargo

@@ -1,0 +1,4 @@
+services:
+  openfang:
+    ports:
+      - "18080:8080"
