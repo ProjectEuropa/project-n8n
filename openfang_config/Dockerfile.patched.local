@@ -30,6 +30,8 @@ ENV CARGO_BUILD_JOBS=1
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/src/openfang/target \
+    perl -0pi -e 's/currentAgent \? currentAgent\.model_provider \+ \x27:\x27 \+ currentAgent\.model_name : \x27\x27/currentAgent ? formatProviderModel(currentAgent.model_provider, currentAgent.model_name) : \x27\x27/' /src/openfang/crates/openfang-api/static/index_body.html && \
+    perl -0pi -e 's/a\.name \+ \x27 \(\x27 \+ \(a\.model_provider \|\| \x27unknown\x27\) \+ \x27:\x27 \+ \(a\.model_name \|\| \x27unknown\x27\) \+ \x27\)\x27/a.name + \x27 (\x27 + formatProviderModel(a.model_provider || \x27unknown\x27, a.model_name || \x27unknown\x27) + \x27)\x27/' /src/openfang/crates/openfang-api/static/index_body.html && \
     cp /tmp/upstream-overrides/crates/openfang-api/static/js/app.js /src/openfang/crates/openfang-api/static/js/app.js && \
     cp /tmp/upstream-overrides/crates/openfang-api/static/js/pages/chat.js /src/openfang/crates/openfang-api/static/js/pages/chat.js && \
     cp /tmp/upstream-overrides/crates/openfang-api/static/js/pages/agents.js /src/openfang/crates/openfang-api/static/js/pages/agents.js && \

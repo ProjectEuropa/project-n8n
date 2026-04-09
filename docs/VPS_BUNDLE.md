@@ -29,8 +29,7 @@ OPENFANG_SOURCE_REF=v0.5.6
 build は override Compose を重ねて実行します。
 
 ```bash
-./scripts/vendor-openfang-source.sh
-docker compose -f compose.yml -f compose.patched.yml up -d --build openfang
+docker compose -f compose.yml -f compose.source-build.yml up -d --build openfang
 ```
 
 UI 上書きファイルは `openfang_config/upstream-overrides/` から source tree に反映します。
@@ -67,7 +66,7 @@ docker compose logs -f
 ```text
 .
 ├── compose.yml
-├── compose.patched.yml
+├── compose.source-build.yml
 ├── .env.example
 ├── caddy_config/
 ├── openfang_config/

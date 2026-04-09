@@ -8,7 +8,7 @@ OpenFang を Docker Compose + Caddy で VPS に載せるためのリポジトリ
 ```text
 .
 ├── compose.yml                  # 本番用 Compose
-├── compose.patched.yml          # patched OpenFang を source build する上書き Compose
+├── compose.source-build.yml     # OpenFang を source build に切り替える上書き Compose
 ├── .env.example                 # VPS 用の環境変数テンプレート
 ├── caddy_config/
 │   └── Caddyfile
@@ -43,7 +43,7 @@ OpenFang を Docker Compose + Caddy で VPS に載せるためのリポジトリ
 
 patched UI build が必要なときだけ:
 
-- `compose.patched.yml`
+- `compose.source-build.yml`
 - `OPENFANG_SOURCE_REPO`
 - `OPENFANG_SOURCE_REF`
 
@@ -111,15 +111,14 @@ OPENFANG_SOURCE_REF=v0.5.6
 その後に override Compose を重ねて build します。
 
 ```bash
-./scripts/vendor-openfang-source.sh
-docker compose -f compose.yml -f compose.patched.yml up -d --build openfang
+docker compose -f compose.yml -f compose.source-build.yml up -d --build openfang
 ```
 
 ローカルで UI だけ素早く確認したいときは、debug build 用 override を使えます。
 
 ```bash
 ./scripts/vendor-openfang-source.sh
-docker compose -f compose.yml -f compose.patched.yml -f compose.local-fast.yml -f compose.local-ui.yml up -d --build openfang
+docker compose -f compose.yml -f compose.source-build.yml -f compose.local-fast.yml -f compose.local-ui.yml up -d --build openfang
 ```
 
 `openfang_config/upstream-src/` に vendored source がある場合、`Dockerfile.patched` は `git clone` をスキップしてそちらを使います。ローカルで UI を詰めるときはこの経路の方が速いです。

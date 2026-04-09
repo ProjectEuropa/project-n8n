@@ -13,7 +13,7 @@ mkdir -p "$BUNDLE_DIR"
 mkdir -p "${BUNDLE_DIR}/credentials"
 
 cp "${APP_DIR}/compose.yml" "${BUNDLE_DIR}/compose.yml"
-cp "${APP_DIR}/compose.patched.yml" "${BUNDLE_DIR}/compose.patched.yml"
+cp "${APP_DIR}/compose.source-build.yml" "${BUNDLE_DIR}/compose.source-build.yml"
 cp "${APP_DIR}/.env.example" "${BUNDLE_DIR}/.env.example"
 cp -R "${APP_DIR}/caddy_config" "${BUNDLE_DIR}/caddy_config"
 cp -R "${APP_DIR}/openfang_config" "${BUNDLE_DIR}/openfang_config"
