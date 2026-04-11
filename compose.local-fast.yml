@@ -1,4 +1,6 @@
 services:
   openfang:
     build:
-      dockerfile: Dockerfile.patched.local
+      dockerfile: Dockerfile.patched
+      args:
+        DEBUG_BUILD: "1"

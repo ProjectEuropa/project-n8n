@@ -3,6 +3,9 @@ FROM rust:1.85-bookworm AS builder
 ARG OPENFANG_SOURCE_REPO=https://github.com/RightNow-AI/openfang
 ARG OPENFANG_SOURCE_REF=v0.5.6
 ARG OPENFANG_SOURCE_COMMIT=
+# Set DEBUG_BUILD=1 for a fast debug build (local development only).
+# Default is 0 (release build, used for VPS/CI).
+ARG DEBUG_BUILD=0
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -29,12 +32,14 @@ RUN if [ -f /tmp/upstream-src/Cargo.toml ]; then \
 
 WORKDIR /src/openfang
 
-ENV CARGO_BUILD_JOBS=1
+# Number of parallel Cargo jobs. Override via --build-arg CARGO_BUILD_JOBS=N
+# or compose args to use more cores on capable machines.
+ARG CARGO_BUILD_JOBS=1
+ENV CARGO_BUILD_JOBS=$CARGO_BUILD_JOBS
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=/src/openfang/target \
-    perl -0pi -e 's/\[profile\.release\]\nlto = true\ncodegen-units = 1/[profile.release]\nlto = false\ncodegen-units = 16/' /src/openfang/Cargo.toml && \
     perl -0pi -e 's/currentAgent \? currentAgent\.model_provider \+ \x27:\x27 \+ currentAgent\.model_name : \x27\x27/currentAgent ? formatProviderModel(currentAgent.model_provider, currentAgent.model_name) : \x27\x27/' /src/openfang/crates/openfang-api/static/index_body.html && \
     perl -0pi -e 's/a\.name \+ \x27 \(\x27 \+ \(a\.model_provider \|\| \x27unknown\x27\) \+ \x27:\x27 \+ \(a\.model_name \|\| \x27unknown\x27\) \+ \x27\)\x27/a.name + \x27 (\x27 + formatProviderModel(a.model_provider || \x27unknown\x27, a.model_name || \x27unknown\x27) + \x27)\x27/' /src/openfang/crates/openfang-api/static/index_body.html && \
     grep -Fq 'formatProviderModel(currentAgent.model_provider, currentAgent.model_name)' /src/openfang/crates/openfang-api/static/index_body.html && \
@@ -46,8 +51,14 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cp /tmp/upstream-overrides/crates/openfang-api/static/js/pages/settings.js /src/openfang/crates/openfang-api/static/js/pages/settings.js && \
     cp /tmp/upstream-overrides/crates/openfang-api/static/js/pages/overview.js /src/openfang/crates/openfang-api/static/js/pages/overview.js && \
     cp /tmp/upstream-overrides/crates/openfang-api/static/js/pages/runtime.js /src/openfang/crates/openfang-api/static/js/pages/runtime.js && \
-    cargo build --release -p openfang-cli --bin openfang && \
-    install -Dm755 target/release/openfang /out/openfang
+    if [ "${DEBUG_BUILD}" = "1" ]; then \
+      cargo build -p openfang-cli --bin openfang && \
+      install -Dm755 target/debug/openfang /out/openfang; \
+    else \
+      perl -0pi -e 's/\[profile\.release\]\nlto = true\ncodegen-units = 1/[profile.release]\nlto = false\ncodegen-units = 16/' /src/openfang/Cargo.toml && \
+      cargo build --release -p openfang-cli --bin openfang && \
+      install -Dm755 target/release/openfang /out/openfang; \
+    fi
 
 FROM debian:bookworm-slim
 
