@@ -56,6 +56,8 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
       install -Dm755 target/debug/openfang /out/openfang; \
     else \
       perl -0pi -e 's/\[profile\.release\]\nlto = true\ncodegen-units = 1/[profile.release]\nlto = false\ncodegen-units = 16/' /src/openfang/Cargo.toml && \
+      grep -q 'lto = false' /src/openfang/Cargo.toml || { echo "ERROR: Expected 'lto = false' not found in Cargo.toml after patching" >&2; exit 1; } && \
+      grep -q 'codegen-units = 16' /src/openfang/Cargo.toml || { echo "ERROR: Expected 'codegen-units = 16' not found in Cargo.toml after patching" >&2; exit 1; } && \
       cargo build --release -p openfang-cli --bin openfang && \
       install -Dm755 target/release/openfang /out/openfang; \
     fi
