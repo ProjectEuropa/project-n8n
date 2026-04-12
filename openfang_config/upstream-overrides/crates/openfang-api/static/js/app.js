@@ -398,14 +398,16 @@ document.addEventListener('alpine:init', function() {
         }
       } catch(e) { /* ignore — fall through to API key check */ }
 
-      // API key mode is active — show security note
-      this.apiKeySecurityWarning = true;
-      _injectApiKeySecurityNote();
-
       // API key mode detection
       try {
         await OpenFangAPI.get('/api/tools');
         this.showAuthPrompt = false;
+        // API key mode is active and working — show security note
+        var savedKey = localStorage.getItem('openfang-api-key');
+        if (savedKey) {
+          this.apiKeySecurityWarning = true;
+          _injectApiKeySecurityNote();
+        }
       } catch(e) {
         var isAuthError = false;
         var status = e.status || (e.response && e.response.status) || e.code;
@@ -421,6 +423,9 @@ document.addEventListener('alpine:init', function() {
             localStorage.removeItem('openfang-api-key');
           }
           this.showAuthPrompt = true;
+          // API key mode is active — show security note when prompt is shown
+          this.apiKeySecurityWarning = true;
+          _injectApiKeySecurityNote();
         }
       }
     },
@@ -610,11 +615,11 @@ function _injectApiKeySecurityNote() {
 
   function tryInject() {
     if (document.getElementById(NOTE_ID)) return;
-    // Look for the API key input form — heuristic: first password or text input in an auth form.
-    var inputs = document.querySelectorAll('input[type="password"], input[type="text"][placeholder*="key" i], input[type="text"][placeholder*="api" i]');
+    // Look for the API key input form — target only API-key-like fields.
+    var inputs = document.querySelectorAll('input[type="text"][placeholder*="key" i], input[type="text"][placeholder*="api" i], input[type="text"][name*="key" i], input[type="text"][name*="api" i], input[data-api-key]');
     var target = null;
     for (var i = 0; i < inputs.length; i++) {
-      var form = inputs[i].closest('form, [x-data], section, div');
+      var form = inputs[i].closest('form, [x-data]');
       if (form) { target = form; break; }
     }
     if (!target) return;
