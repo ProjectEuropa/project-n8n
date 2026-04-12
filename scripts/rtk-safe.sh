@@ -34,14 +34,13 @@ else
   fail "git repo 内で実行してください"
 fi
 
-joined_args=" $* "
-if [[ "${joined_args}" == *" init "* ||
-      "${joined_args}" == *" --global "* ||
-      "${joined_args}" == *" -g "* ||
-      "${joined_args}" == *" hook "* ||
-      "${joined_args}" == *" hooks "* ]]; then
-  fail "global init / hook 操作は禁止です"
-fi
+for token in "$@"; do
+  case "${token}" in
+    init|hook|hooks|--global|--global=*|-g|-g=*)
+      fail "global init / hook 操作は禁止です"
+      ;;
+  esac
+done
 
 case "${1}" in
   aws|curl|wget|docker|kubectl)
