@@ -309,6 +309,8 @@ document.addEventListener('alpine:init', function() {
     showAuthPrompt: false,
     authMode: 'apikey',
     sessionUser: null,
+    // true when apikey mode is active — used to display localStorage security note in the UI
+    apiKeySecurityWarning: false,
 
     toggleFocusMode() {
       this.focusMode = !this.focusMode;
@@ -415,6 +417,9 @@ document.addEventListener('alpine:init', function() {
             localStorage.removeItem('openfang-api-key');
           }
           this.showAuthPrompt = true;
+          // API key mode is active — show security note when auth prompt is displayed
+          this.apiKeySecurityWarning = true;
+          _injectApiKeySecurityNote();
         }
       }
     },
@@ -592,4 +597,48 @@ function app() {
       this.wsConnected = OpenFangAPI.isWsConnected();
     }
   };
+}
+
+// Inject a localStorage security warning banner into the API key auth form.
+// This runs without modifying index_body.html so it works as a plain JS override.
+function _injectApiKeySecurityNote() {
+  var NOTE_ID = 'of-apikey-security-note';
+  if (document.getElementById(NOTE_ID)) return; // already injected
+
+  function tryInject() {
+    if (document.getElementById(NOTE_ID)) return;
+    // Look for the API key input form without assuming a visible text input.
+    var inputs = document.querySelectorAll('input[placeholder*="key" i], input[placeholder*="api" i], input[data-api-key], input[name*="key" i], input[name*="api" i], input[x-model="apiKeyInput"]');
+    var target = null;
+    for (var i = 0; i < inputs.length; i++) {
+      var form = inputs[i].closest('form, [x-data]');
+      if (form) { target = form; break; }
+    }
+    if (!target) return;
+
+    var note = document.createElement('p');
+    note.id = NOTE_ID;
+    note.setAttribute('role', 'note');
+    note.style.cssText = [
+      'margin: 8px 0 0',
+      'padding: 6px 10px',
+      'border-left: 3px solid #f59e0b',
+      'background: rgba(245,158,11,0.08)',
+      'border-radius: 4px',
+      'font-size: 0.78rem',
+      'color: #92400e',
+      'line-height: 1.4'
+    ].join(';');
+    note.innerHTML = '\u26a0\ufe0f <strong>Security note:</strong> API keys stored in <code>localStorage</code> can be read by any script on this page. ' +
+      'If your OpenFang instance supports session-based login, prefer that instead.';
+
+    target.appendChild(note);
+  }
+
+  // Try immediately, then retry once DOM is ready (e.g. if Alpine renders asynchronously)
+  tryInject();
+  if (!document.getElementById(NOTE_ID)) {
+    setTimeout(tryInject, 300);
+    setTimeout(tryInject, 1000);
+  }
 }

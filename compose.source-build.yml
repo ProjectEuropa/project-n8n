@@ -2,3 +2,8 @@ services:
   openfang:
     build:
       dockerfile: Dockerfile.patched
+      # args:
+      #   # Parallel Cargo jobs (default: 1). Increase on capable machines/CI.
+      #   CARGO_BUILD_JOBS: "4"
+      #   # Use DEBUG_BUILD=1 for a faster local build (skips LTO, keeps debug symbols).
+      #   # DEBUG_BUILD: "1"
