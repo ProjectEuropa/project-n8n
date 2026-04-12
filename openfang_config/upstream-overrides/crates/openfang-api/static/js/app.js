@@ -607,8 +607,8 @@ function _injectApiKeySecurityNote() {
 
   function tryInject() {
     if (document.getElementById(NOTE_ID)) return;
-    // Look for the API key input form — target only API-key-like text inputs
-    var inputs = document.querySelectorAll('input[type="text"][placeholder*="key" i], input[type="text"][placeholder*="api" i], input[type="text"][data-api-key], input[type="text"][name*="key" i], input[type="text"][name*="api" i]');
+    // Look for the API key input form without assuming a visible text input.
+    var inputs = document.querySelectorAll('input[placeholder*="key" i], input[placeholder*="api" i], input[data-api-key], input[name*="key" i], input[name*="api" i], input[x-model="apiKeyInput"]');
     var target = null;
     for (var i = 0; i < inputs.length; i++) {
       var form = inputs[i].closest('form, [x-data]');
