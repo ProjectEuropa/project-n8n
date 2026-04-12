@@ -10,7 +10,7 @@ fail() {
   exit 2
 }
 
-if [[ "${CI:-}" == "true" || -n "${GITHUB_ACTIONS:-}" ]]; then
+if [[ "${CI:-}" == "1" || "${CI:-}" =~ ^[Tt][Rr][Uu][Ee]$ || -n "${GITHUB_ACTIONS:-}" ]]; then
   fail "CI では rtk を使わないでください"
 fi
 
@@ -61,8 +61,9 @@ case "${1}:${2:-}" in
 esac
 
 for arg in "$@"; do
-  case "${arg}" in
-    *.env*|*credentials*|*Credentials*|*CREDENTIALS*|*secret*|*Secret*|*SECRET*|*token*|*Token*|*TOKEN*|*password*|*Password*|*PASSWORD*)
+  lower_arg=$(printf '%s' "${arg}" | tr '[:upper:]' '[:lower:]')
+  case "${lower_arg}" in
+    *.env*|*credentials*|*secret*|*token*|*password*)
       fail "secret / .env / credentials を含む引数は禁止です: ${arg}"
       ;;
   esac
@@ -70,8 +71,7 @@ done
 
 if [[ -n "${RTK_BIN:-}" ]]; then
   rtk_bin="${RTK_BIN}"
-elif [[ -x /tmp/rtk-audit/target/debug/rtk ]]; then
-  rtk_bin=/tmp/rtk-audit/target/debug/rtk
+  [[ -x "${rtk_bin}" ]] || fail "RTK_BIN is not executable: ${rtk_bin}"
 elif command -v rtk >/dev/null 2>&1; then
   rtk_bin=$(command -v rtk)
 else

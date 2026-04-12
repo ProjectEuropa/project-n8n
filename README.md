@@ -43,7 +43,7 @@ RTK は global hook としては使わず、PR レビュー前に巨大 diff を
 ./scripts/rtk-safe.sh git status
 ```
 
-この wrapper は `RTK_TELEMETRY_DISABLED=1` と `RTK_TEE=0` を強制し、`rtk init -g`、Claude Code global hook、`aws`、`gh`、`curl`、`docker`、`kubectl`、`.env`、`credentials`、secret/token/password を含む引数、CI での実行を拒否します。
+この wrapper は `RTK_TELEMETRY_DISABLED=1` と `RTK_TEE=0` を強制し、`rtk init -g`、Claude Code global hook、`aws`、`gh`、`curl`、`wget`、`docker`、`kubectl`、`.env`、`credentials`、secret/token/password を含む引数、CI での実行を拒否します。許可コマンドは `git diff/status/log/show` と `cargo test` だけです。
 
 ### 1. ローカルで設定を調整
 
