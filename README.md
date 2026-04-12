@@ -33,6 +33,18 @@ OpenFang を Docker Compose + Caddy で VPS に載せるためのリポジトリ
 
 ## 推奨フロー
 
+## RTK の安全な試用
+
+RTK は global hook としては使わず、PR レビュー前に巨大 diff をざっと読む補助だけに限定します。この repo では [`scripts/rtk-safe.sh`](scripts/rtk-safe.sh#L1) 経由で実行してください。
+
+```bash
+./scripts/rtk-safe.sh git diff
+./scripts/rtk-safe.sh git diff main...HEAD
+./scripts/rtk-safe.sh git status
+```
+
+この wrapper は `RTK_TELEMETRY_DISABLED=1` と `RTK_TEE=0` を強制し、`rtk init -g`、Claude Code global hook、`aws`、`gh`、`curl`、`docker`、`kubectl`、`.env`、`credentials`、secret/token/password を含む引数、CI での実行を拒否します。
+
 ### 1. ローカルで設定を調整
 
 - `compose.yml`
